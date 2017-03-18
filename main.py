@@ -59,6 +59,11 @@ class Simulation(object):
 		
 		elif self.playerCreature.chanceToBefriend > self.playerCreature.chanceToFight and self.playerCreature.chanceToBefriend > self.playerCreature.chanceToLove:
 			print "\n%s was very friendly." % self.playerCreature.name
+			
+		print "\n----------------------------\n"	
+		print "Babies made: %d" % self.playerCreature.babiesMade
+		print "Creatures Eaten: %d" % self.playerCreature.creaturesEaten
+		print "Friendships forged: %d" % self.playerCreature.friendsMade
 		
 		print "\n----------------------------\n"
 		print "%s's chance to make a baby was %d percent." % (self.playerCreature.name, self.playerCreature.chanceToLove)

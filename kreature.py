@@ -58,6 +58,9 @@ class Kreature(object):
 		self.chanceToFight -= 2.5
 		self.chanceToBefriend -=2.5
 	
+		self.babiesMade += 1
+		kreature.babiesMade += 1
+	
 	def fight(self, kreature):
 		self.log.append("%s fought and ate %s!" % (self.name, kreature.name))
 		kreature.log.append("%s was eaten by %s!" % (kreature.name, self.name))
@@ -65,6 +68,8 @@ class Kreature(object):
 		self.chanceToFight += 5
 		self.chanceToLove -= 2.5
 		self.chanceToBefriend -=2.5
+		
+		self.creaturesEaten += 1
 		
 	def befriend(self, kreature):
 		self.log.append("%s made friends with %s!" % (self.name, kreature.name))
@@ -76,3 +81,6 @@ class Kreature(object):
 		self.chanceToBefriend += 5
 		self.chanceToLove -=2.5
 		self.chanceToFight -= 2.5
+		
+		self.friendsMade += 1
+		kreature.friendsMade += 1
