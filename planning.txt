@@ -11,5 +11,5 @@ Ideas -----------------------------------------
 - Every day there's a chance they'll move areas
 
 Goals -----------------------------------------
-- Get rid of chance to make a baby and put it in make friend instead
 - Show creatures alive at all times
+- Make inputted names possible baby names using a txt file

@@ -4,10 +4,9 @@ class Kreature(object):
 	
 	def __init__(self, name):
 		self.name = name
-		
-		self.chanceToLove = 33.3
-		self.chanceToFight = 33.3
-		self.chanceToBefriend = 33.3
+	
+		self.chanceToFight = 50
+		self.chanceToBefriend = 50
 	
 		self.log = ["%s was created." % self.name]
 		
@@ -26,37 +25,26 @@ class Kreature(object):
 		else:
 			return False
 	
-	def decideWhatToDo(self, kreature):
+	def decideWhatToDo(self, kreature):		
 		self.decision = random.randint(0,100)
 		
-		if self.decision <= 0 + self.chanceToLove: # if love
-			for i in self.friends:
-				if i.name == kreature.name:
-					return "love" # if creature is a friend, have a baby
-					
-			return "nothing"
-		
-		elif self.chanceToLove < self.decision < self.chanceToLove + self.chanceToFight: # if fight
+		if self.decision <= self.chanceToFight: # if fight	
 			for i in self.friends:
 				if i.name == kreature.name:
 					return "nothing" # if creature is a friend, don't fight
 			
 			return "fight" # if search comes up empty, fight
 		
-		elif self.chanceToLove + self.chanceToFight < self.decision < 100: # if befriend
+		elif self.chanceToFight < self.decision: # if befriend
 			for i in self.friends:
 				if i.name == kreature.name:
-					return "nothing" # if creature is a friend, do nothing
+					return "love" # if creature is a friend, have a baby
 			
 			return "befriend"
 	
 	def love(self, kreature):
 		self.log.append("%s made a baby with %s!" % (self.name, kreature.name))
 		kreature.log.append("%s made a baby with %s!" % (kreature.name, self.name))
-		
-		self.chanceToLove += 5
-		self.chanceToFight -= 2.5
-		self.chanceToBefriend -=2.5
 	
 		self.babiesMade += 1
 		kreature.babiesMade += 1
@@ -64,10 +52,6 @@ class Kreature(object):
 	def fight(self, kreature):
 		self.log.append("%s fought and ate %s!" % (self.name, kreature.name))
 		kreature.log.append("%s was eaten by %s!" % (kreature.name, self.name))
-		
-		self.chanceToFight += 5
-		self.chanceToLove -= 2.5
-		self.chanceToBefriend -=2.5
 		
 		self.creaturesEaten += 1
 		
@@ -77,10 +61,6 @@ class Kreature(object):
 		
 		self.friends.append(kreature)
 		kreature.friends.append(self) # this should hopefully append this creature to kreature's friend list
-		
-		self.chanceToBefriend += 5
-		self.chanceToLove -=2.5
-		self.chanceToFight -= 2.5
 		
 		self.friendsMade += 1
 		kreature.friendsMade += 1
