@@ -12,5 +12,4 @@ Ideas -----------------------------------------
 
 Goals -----------------------------------------
 - Get rid of chance to make a baby and put it in make friend instead
-- Make statistics work
 - Show creatures alive at all times
