@@ -1,7 +1,11 @@
+ # Copyright (c) 2022 McCoy Software Solutions
+ # Apache License 2.0
 from kreature import Kreature
 import random
 import time
 
+# @author Daniel McCoy Stephenson
+# @since 2017
 class Simulation(object):
 	
 	def __init__(self):

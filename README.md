@@ -1,2 +1,2 @@
 # Kreatures
-Lets you put a creature into a simulation with other creatures. You can then see what your creature does.
+This application allows the user to place a creature into a simulation with other creatures. The user can then see what their creature does. 

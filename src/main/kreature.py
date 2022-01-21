@@ -1,5 +1,9 @@
+ # Copyright (c) 2022 McCoy Software Solutions
+ # Apache License 2.0
 import random
 
+# @author Daniel McCoy Stephenson
+# @since 2017
 class Kreature(object):
 	
 	def __init__(self, name):
