@@ -5,4 +5,4 @@ This application allows the user to place a creature into a virtual environment 
 I created this application in 2017 as I was getting into python for the first time. It was one of the first programs that I was proud of.
 
 ## Interakt
-This idea is expanded upon in the [Interakt](https://github.com/McCoy-Software-Solutions/Interakt) project.
+The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/McCoy-Software-Solutions/Interakt) project.
