@@ -10,7 +10,7 @@ class Simulation(object):
 	
 	def __init__(self):
 				
-		# creates ten creatures for the world to have to start with
+		# create ten creatures for the world to have to start with
 		self.Alison = Kreature("Alison")
 		self.Barry = Kreature("Barry")
 		self.Conrad = Kreature("Conrad")
@@ -22,24 +22,24 @@ class Simulation(object):
 		self.Isabelle = Kreature("Isabelle")
 		self.Jasper = Kreature("Jasper")
 		
-		self.listOfKreatures = ["placholder", self.Alison, self.Barry, self.Conrad, self.Derrick, self.Eric,
+		self.listOfKreatures = ["placeholder", self.Alison, self.Barry, self.Conrad, self.Derrick, self.Eric,
 						    self.Francis, self.Gary, self.Harry, self.Isabelle, self.Jasper]
 						    
 		self.listOfRandomNames = ["Jesse", "Juan", "Jose", "Ralph", "Jeremy", "Bobby", "Johnny", "Douglas", "Peter", "Scott", "Kyle", "Billy", "Terry", "Randy", "Adam"]
-					
+
+		self.running = True
+
 	def start(self):
 		print("What would you like to name your kreature?\n")
 		
 		self.creatureName = input("> ")
-		
 		self.playerCreature = Kreature(self.creatureName)
-		
 		self.listOfKreatures[0] = self.playerCreature
 		
 		print("\n")
 		
 		# code to run a day, then show any new additions to log
-		while True:
+		while self.running:
 			try:
 				print(self.playerCreature.log[0]) # tries to print log entry
 				
@@ -110,6 +110,3 @@ class Simulation(object):
 	def makeBaby(self):
 		self.creature = Kreature(self.listOfRandomNames[random.randint(0,len(self.listOfRandomNames) - 1)])
 		self.listOfKreatures.append(self.creature)
-
-mySim = Simulation()
-mySim.start()
