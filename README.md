@@ -19,4 +19,4 @@ You're able to create a creature and release it into an environment where it can
 - Make inputted names possible baby names using a txt file
 
 ## Interakt
-The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/McCoy-Software-Solutions/Interakt) project.
+The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/Stephenson-Software/Interakt) and [Apex](https://github.com/Stephenson-Software/Apex) projects.
