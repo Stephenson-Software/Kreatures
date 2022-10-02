@@ -1,10 +1,10 @@
- # Copyright (c) 2022 McCoy Software Solutions
+ # Copyright (c) 2022 Stephenson Software
  # Apache License 2.0
 import random
 
 # @author Daniel McCoy Stephenson
 # @since 2017
-class Kreature(object):
+class Entity(object):
 	
 	def __init__(self, name):
 		self.name = name
@@ -20,16 +20,13 @@ class Kreature(object):
 		self.creaturesEaten = 0
 		self.friendsMade = 0
 	
-	def showLog(self):
-		pass
-	
-	def decideIfToMove(self):
-		if randint(1,10) == 1:
+	def rollForMovement(self):
+		if random.randint(1,10) == 1:
 			return True
 		else:
 			return False
 	
-	def decideWhatToDo(self, kreature):		
+	def getNextAction(self, kreature):		
 		self.decision = random.randint(0,100)
 		
 		if self.decision <= self.chanceToFight: # if fight	
@@ -46,7 +43,7 @@ class Kreature(object):
 			
 			return "befriend"
 	
-	def love(self, kreature):
+	def reproduce(self, kreature):
 		self.log.append("%s made a baby with %s!" % (self.name, kreature.name))
 		kreature.log.append("%s made a baby with %s!" % (kreature.name, self.name))
 	
