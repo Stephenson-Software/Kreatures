@@ -15,6 +15,8 @@ class Kreatures:
 		self.playerCreature = LivingEntity(self.creatureName)
 
 		self.running = True
+  
+		self.godMode = False
 
 	def initiateEntityActions(self):
 		for entity in self.environment.getEntities():
@@ -23,21 +25,23 @@ class Kreatures:
 			if target == entity:
 				continue
 			
-			self.decision = entity.getNextAction(target)
+			decision = entity.getNextAction(target)
 			
-			if self.decision == "nothing":
+			if decision == "nothing":
 				entity.log.append("%s had an argument with %s!" % (entity.name, target.name))
-			elif self.decision == "love":
+			elif decision == "love":
 				entity.reproduce(target)
 				entity.chanceToBefriend += 5
 				entity.chanceToFight -= 5
 				self.createEntity()
-			elif self.decision == "fight":
+			elif decision == "fight":
+				if (target == self.playerCreature and self.godMode):
+					continue
 				entity.chanceToFight += 5
-				entity.chanceToBefriend -= 5			
+				entity.chanceToBefriend -= 5
 				self.environment.removeEntity(target)
 				entity.fight(target)
-			elif self.decision == "befriend":
+			elif decision == "befriend":
 				entity.chanceToBefriend += 5
 				entity.chanceToFight -= 5
 				entity.befriend(target)
