@@ -6,9 +6,13 @@ from livingEntity import LivingEntity
 # @author Daniel McCoy Stephenson
 class Kreatures:
 	def __init__(self):
-		self.environment = World();
+		self.environment = World()
 
-		self.names = ["Jesse", "Juan", "Jose", "Ralph", "Jeremy", "Bobby", "Johnny", "Douglas", "Peter", "Scott", "Kyle", "Billy", "Terry", "Randy", "Adam"]
+		self.names = ["Jesse", "Juan", "Jose",
+					  "Ralph", "Jeremy", "Bobby",
+					  "Johnny", "Douglas", "Peter",
+					  "Scott", "Kyle", "Billy",
+					  "Terry", "Randy", "Adam"]
 
 		print("What would you like to name your kreature?")
 		self.creatureName = input("> ")
