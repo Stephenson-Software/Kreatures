@@ -1,12 +1,12 @@
 import random
 import time
-from environment import Environment
+from world import World
 from livingEntity import LivingEntity
 
 # @author Daniel McCoy Stephenson
 class Kreatures:
 	def __init__(self):
-		self.environment = Environment();
+		self.environment = World();
 
 		self.names = ["Jesse", "Juan", "Jose", "Ralph", "Jeremy", "Bobby", "Johnny", "Douglas", "Peter", "Scott", "Kyle", "Billy", "Terry", "Randy", "Adam"]
 
