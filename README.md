@@ -18,5 +18,5 @@ You're able to create a creature and release it into an environment where it can
 - Show creatures alive at all times
 - Make inputted names possible baby names using a txt file
 
-## Interakt
+## Interakt & Apex
 The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/Stephenson-Software/Interakt) and [Apex](https://github.com/Stephenson-Software/Apex) projects.
