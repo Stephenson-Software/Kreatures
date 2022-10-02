@@ -5,7 +5,6 @@ import random
 # @author Daniel McCoy Stephenson
 # @since 2017
 class LivingEntity(object):
-	
 	def __init__(self, name):
 		self.name = name
 		self.chanceToFight = 50
