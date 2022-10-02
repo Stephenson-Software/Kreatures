@@ -5,7 +5,7 @@ import random
 
 # @author Daniel McCoy Stephenson
 # @since 2017
-class Environment(object):
+class World(object):
 	def __init__(self):	
 		self.entities = []
 
