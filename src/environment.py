@@ -2,7 +2,6 @@
  # Apache License 2.0
 from livingEntity import LivingEntity
 import random
-import time
 
 # @author Daniel McCoy Stephenson
 # @since 2017
