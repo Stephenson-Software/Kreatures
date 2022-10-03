@@ -10,7 +10,7 @@ class LivingEntity(object):
 	def __init__(self, name):
 		self.name = name
 		self.chanceToFight = random.randint(45, 55)
-		self.chanceToBefriend = random.randint(45, 55)
+		self.chanceToBefriend = 100 - self.chanceToFight
 		self.log = ["%s was created." % self.name]
 		self.friends = []
 		self.stats = Stats()
