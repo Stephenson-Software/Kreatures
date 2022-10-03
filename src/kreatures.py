@@ -1,7 +1,10 @@
+ # Copyright (c) 2022 Stephenson Software
+ # Apache License 2.0
 import random
 import time
 from world import World
 from livingEntity import LivingEntity
+from config import Config
 
 # @author Daniel McCoy Stephenson
 class Kreatures:
@@ -19,8 +22,8 @@ class Kreatures:
 		self.playerCreature = LivingEntity(self.creatureName)
 
 		self.running = True
-  
-		self.godMode = False
+		self.config = Config()
+		self.iteration = 0
 
 	def initiateEntityActions(self):
 		for entity in self.environment.getEntities():
@@ -39,7 +42,7 @@ class Kreatures:
 				entity.chanceToFight -= 5
 				self.createEntity()
 			elif decision == "fight":
-				if (target == self.playerCreature and self.godMode):
+				if (target == self.playerCreature and self.config.godMode):
 					continue
 				entity.chanceToFight += 5
 				entity.chanceToBefriend -= 5
@@ -53,6 +56,24 @@ class Kreatures:
 	def createEntity(self):
 		newEntity = LivingEntity(self.names[random.randint(0,len(self.names) - 1)])
 		self.environment.addEntity(newEntity)
+	
+	def printSummary(self):
+		print("=== Summary ===")
+		if self.playerCreature.chanceToFight > self.playerCreature.chanceToBefriend:
+			print("%s was ferocious." % self.playerCreature.name)
+		elif self.playerCreature.chanceToBefriend > self.playerCreature.chanceToFight:
+			print("%s was very friendly." % self.playerCreature.name)
+		else:
+			print("%s was neutral." % self.playerCreature.name)
+		print("%s's chance to get into a fight was %d percent." % (self.playerCreature.name, self.playerCreature.chanceToFight))
+		print("%s's chance to be nice was %d percent." % (self.playerCreature.name, self.playerCreature.chanceToBefriend))
+		print("Kreatures still alive: %d" % self.environment.getNumEntities())
+	
+	def printStats(self):
+		print ("=== Stats ===")
+		print("Friendships forged: %d" % self.playerCreature.stats.numFriendshipsForged)
+		print("Babies made: %d" % self.playerCreature.stats.numOffspring)
+		print("Creatures Eaten: %d" % self.playerCreature.stats.numCreaturesEaten)
 
 	def run(self):
 		self.environment.entities[0] = self.playerCreature
@@ -63,26 +84,25 @@ class Kreatures:
 			try:
 				print(self.playerCreature.log[0]) # tries to print log entry
 				if "eaten" in self.playerCreature.log[0]: # if creature was eaten, break out of loop
+					self.running = False
 					break
 				del self.playerCreature.log[0] # tries to delete log entry
 			except: # if list is empty, just keep going
 				pass
 			
 			self.initiateEntityActions()
-			time.sleep(1)
-			
-		if self.playerCreature.chanceToFight > self.playerCreature.chanceToBefriend:
-			print("%s was ferocious." % self.playerCreature.name)
-		elif self.playerCreature.chanceToBefriend > self.playerCreature.chanceToFight:
-			print("%s was very friendly." % self.playerCreature.name)
+			time.sleep(self.config.tickLength)
+			self.iteration += 1
+			if (self.iteration >= self.config.maxIterations):
+				print("Maximum iterations reached.")
+				self.running = False
+				break
 
 		input("[CONTINUE]")
-		print("Friendships forged: %d" % self.playerCreature.friendsMade)
-		print("Babies made: %d" % self.playerCreature.babiesMade)
-		print("Creatures Eaten: %d" % self.playerCreature.creaturesEaten)
-		print("%s's chance to get into a fight was %d percent." % (self.playerCreature.name, self.playerCreature.chanceToFight))
-		print("%s's chance to be nice was %d percent." % (self.playerCreature.name, self.playerCreature.chanceToBefriend))
-		print("Kreatures still alive: %d" % self.environment.getNumEntities())
+
+		self.printSummary()
+		self.printStats()
+
 
 kreatures = Kreatures()
 kreatures.run()
