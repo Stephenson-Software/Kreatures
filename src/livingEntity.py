@@ -1,6 +1,7 @@
  # Copyright (c) 2022 Stephenson Software
  # Apache License 2.0
 import random
+from flags import Flags
 from stats import Stats
 
 # @author Daniel McCoy Stephenson
@@ -8,11 +9,12 @@ from stats import Stats
 class LivingEntity(object):
 	def __init__(self, name):
 		self.name = name
-		self.chanceToFight = 50
-		self.chanceToBefriend = 50
+		self.chanceToFight = random.randint(45, 55)
+		self.chanceToBefriend = random.randint(45, 55)
 		self.log = ["%s was created." % self.name]
 		self.friends = []
 		self.stats = Stats()
+		self.flags = Flags()
 	
 	def rollForMovement(self):
 		if random.randint(1,10) == 1:
@@ -54,3 +56,23 @@ class LivingEntity(object):
 		kreature.friends.append(self) # this should hopefully append this creature to kreature's friend list
 		self.stats.numFriendshipsForged += 1
 		kreature.stats.numFriendshipsForged += 1
+	
+	def increaseChanceToFight(self):
+		self.chanceToFight += self.flags.increaseAmount
+		if (self.chanceToFight > 100):
+			self.chanceToFight = 100
+	
+	def decreaseChanceToFight(self):
+		self.chanceToFight -= self.flags.increaseAmount
+		if (self.chanceToFight < 0):
+			self.chanceToFight = 0
+	
+	def increaseChanceToBefriend(self):
+		self.chanceToBefriend += self.flags.increaseAmount
+		if (self.chanceToBefriend > 100):
+			self.chanceToBefriend = 100
+	
+	def decreaseChanceToBefriend(self):
+		self.chanceToBefriend -= self.flags.increaseAmount
+		if (self.chanceToBefriend < 0):
+			self.chanceToBefriend = 0

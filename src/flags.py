@@ -3,8 +3,6 @@
 
 # @author Daniel McCoy Stephenson
 # @since October 2nd, 2022
-class Config:
+class Flags:
     def __init__(self):
-        self.godMode = False
-        self.maxTicks = 1000
-        self.tickLength = 0.1
+        self.increaseAmount = 1

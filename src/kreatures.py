@@ -23,7 +23,7 @@ class Kreatures:
 
 		self.running = True
 		self.config = Config()
-		self.iteration = 0
+		self.tick = 0
 
 	def initiateEntityActions(self):
 		for entity in self.environment.getEntities():
@@ -38,19 +38,19 @@ class Kreatures:
 				entity.log.append("%s had an argument with %s!" % (entity.name, target.name))
 			elif decision == "love":
 				entity.reproduce(target)
-				entity.chanceToBefriend += 5
-				entity.chanceToFight -= 5
+				entity.increaseChanceToBefriend()
+				entity.decreaseChanceToFight()
 				self.createEntity()
 			elif decision == "fight":
 				if (target == self.playerCreature and self.config.godMode):
 					continue
-				entity.chanceToFight += 5
-				entity.chanceToBefriend -= 5
+				entity.increaseChanceToFight()
+				entity.decreaseChanceToBefriend()
 				self.environment.removeEntity(target)
 				entity.fight(target)
 			elif decision == "befriend":
-				entity.chanceToBefriend += 5
-				entity.chanceToFight -= 5
+				entity.increaseChanceToBefriend()
+				entity.decreaseChanceToFight()
 				entity.befriend(target)
 
 	def createEntity(self):
@@ -92,8 +92,8 @@ class Kreatures:
 			
 			self.initiateEntityActions()
 			time.sleep(self.config.tickLength)
-			self.iteration += 1
-			if (self.iteration >= self.config.maxIterations):
+			self.tick += 1
+			if (self.tick >= self.config.maxTicks):
 				print("Maximum iterations reached.")
 				self.running = False
 				break
