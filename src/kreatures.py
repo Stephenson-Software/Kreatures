@@ -2,9 +2,9 @@
  # Apache License 2.0
 import random
 import time
-from world import World
-from livingEntity import LivingEntity
-from config import Config
+from world.world import World
+from entity.livingEntity import LivingEntity
+from config.config import Config
 
 # @author Daniel McCoy Stephenson
 class Kreatures:

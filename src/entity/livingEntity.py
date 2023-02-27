@@ -1,8 +1,8 @@
  # Copyright (c) 2022 Stephenson Software
  # Apache License 2.0
 import random
-from flags import Flags
-from stats import Stats
+from flags.flags import Flags
+from stats.stats import Stats
 
 # @author Daniel McCoy Stephenson
 # @since 2017
