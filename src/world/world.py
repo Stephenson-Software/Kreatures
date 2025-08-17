@@ -1,6 +1,6 @@
  # Copyright (c) 2022 Stephenson Software
  # Apache License 2.0
-from livingEntity import LivingEntity
+from entity.livingEntity import LivingEntity
 import random
 
 # @author Daniel McCoy Stephenson
