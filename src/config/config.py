@@ -5,6 +5,6 @@
 # @since October 2nd, 2022
 class Config:
     def __init__(self):
-        self.godMode = False
+        self.godMode = False  # Disable god mode
         self.maxTicks = 1000
         self.tickLength = 0.1

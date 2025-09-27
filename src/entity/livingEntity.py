@@ -9,13 +9,13 @@ from stats.stats import Stats
 class LivingEntity(object):
 	def __init__(self, name):
 		self.name = name
-		self.chanceToFight = random.randint(45, 55)
+		self.chanceToFight = random.randint(45, 55)  # Back to normal values
 		self.chanceToBefriend = 100 - self.chanceToFight
 		self.log = ["%s was created." % self.name]
 		self.friends = []
 		self.stats = Stats()
 		self.flags = Flags()
-		self.parents = []  # Track parent entities
+		self.parents = []  # Track parent entities  
 		self.children = []  # Track child entities
 	
 	def rollForMovement(self):
