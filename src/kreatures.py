@@ -37,10 +37,10 @@ class Kreatures:
 			if decision == "nothing":
 				entity.log.append("%s had an argument with %s!" % (entity.name, target.name))
 			elif decision == "love":
-				entity.reproduce(target)
+				parents = entity.reproduce(target)
 				entity.increaseChanceToBefriend()
 				entity.decreaseChanceToFight()
-				self.createEntity()
+				self.createChildEntity(parents[0], parents[1])
 			elif decision == "fight":
 				if (target == self.playerCreature and self.config.godMode):
 					continue
@@ -56,6 +56,79 @@ class Kreatures:
 	def createEntity(self):
 		newEntity = LivingEntity(self.names[random.randint(0,len(self.names) - 1)])
 		self.environment.addEntity(newEntity)
+	
+	def createChildEntity(self, parent1, parent2):
+		"""Create a child entity with proper parent-child relationships"""
+		childName = self.names[random.randint(0,len(self.names) - 1)]
+		child = LivingEntity(childName)
+		
+		# Set up parent-child relationships
+		child.addParent(parent1)
+		child.addParent(parent2)
+		parent1.addChild(child)
+		parent2.addChild(child)
+		
+		# Child inherits some traits from parents (average)
+		child.chanceToFight = (parent1.chanceToFight + parent2.chanceToFight) // 2
+		child.chanceToBefriend = 100 - child.chanceToFight
+		
+		child.log.append("%s is the child of %s and %s." % (childName, parent1.name, parent2.name))
+		
+		self.environment.addEntity(child)
+		return child
+	
+	def getLivingChildren(self, entity):
+		"""Get all living children of an entity"""
+		living_children = []
+		for child in entity.children:
+			if child in self.environment.entities:
+				living_children.append(child)
+		return living_children
+	
+	def continueAsChild(self):
+		"""Allow player to continue as one of their creature's children"""
+		living_children = self.getLivingChildren(self.playerCreature)
+		
+		if not living_children:
+			return False
+		
+		print(f"\n{self.playerCreature.name} has died, but has {len(living_children)} living children!")
+		print("Would you like to continue as one of your children? (y/n)")
+		choice = input("> ").lower().strip()
+		
+		if choice == 'y' or choice == 'yes':
+			if len(living_children) == 1:
+				# Only one child, automatically select it
+				new_player = living_children[0]
+				print(f"You are now playing as {new_player.name}!")
+			else:
+				# Multiple children, let player choose
+				print("\nWhich child would you like to continue as?")
+				for i, child in enumerate(living_children):
+					print(f"{i+1}. {child.name}")
+				
+				while True:
+					try:
+						choice_idx = int(input("> ")) - 1
+						if 0 <= choice_idx < len(living_children):
+							new_player = living_children[choice_idx]
+							print(f"You are now playing as {new_player.name}!")
+							break
+						else:
+							print("Invalid choice. Please try again.")
+					except ValueError:
+						print("Please enter a number.")
+			
+			# Update the player creature reference
+			self.playerCreature = new_player
+			# Make sure the new player creature is at position 0 in the entities list
+			if new_player in self.environment.entities:
+				self.environment.entities.remove(new_player)
+			self.environment.entities.insert(0, new_player)
+			self.running = True  # Continue the game
+			return True
+		
+		return False
 	
 	def printSummary(self):
 		print("=== Summary ===")
@@ -83,9 +156,10 @@ class Kreatures:
 		while self.running:
 			try:
 				print(self.playerCreature.log[0]) # tries to print log entry
-				if "eaten" in self.playerCreature.log[0]: # if creature was eaten, break out of loop
-					self.running = False
-					break
+				if "eaten" in self.playerCreature.log[0]: # if creature was eaten, check for children
+					if not self.continueAsChild():
+						self.running = False
+						break
 				del self.playerCreature.log[0] # tries to delete log entry
 			except: # if list is empty, just keep going
 				pass
