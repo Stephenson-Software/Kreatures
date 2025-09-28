@@ -52,21 +52,51 @@ class LivingEntity(object):
         return (self, kreature)
 
     def fight(self, kreature):
-        damage = random.randint(15, 25)  # Random damage between 15-25
-        kreature.health -= damage
+        # Fight to the death - continue until one creature dies
+        while self.health > 0 and kreature.health > 0:
+            # This creature attacks first
+            if self.health > 0:
+                damage = random.randint(15, 25)  # Random damage between 15-25
+                kreature.health -= damage
+                if kreature.health <= 0:
+                    self.log.append(
+                        "%s fought and ate %s!" % (self.name, kreature.name)
+                    )
+                    kreature.log.append(
+                        "%s was eaten by %s!" % (kreature.name, self.name)
+                    )
+                    self.stats.numCreaturesEaten += 1
+                    break
+                else:
+                    self.log.append(
+                        "%s fought %s and dealt %d damage!"
+                        % (self.name, kreature.name, damage)
+                    )
+                    kreature.log.append(
+                        "%s took %d damage from %s! Health: %d"
+                        % (kreature.name, damage, self.name, kreature.health)
+                    )
 
-        if kreature.health <= 0:
-            self.log.append("%s fought and ate %s!" % (self.name, kreature.name))
-            kreature.log.append("%s was eaten by %s!" % (kreature.name, self.name))
-            self.stats.numCreaturesEaten += 1
-        else:
-            self.log.append(
-                "%s fought %s and dealt %d damage!" % (self.name, kreature.name, damage)
-            )
-            kreature.log.append(
-                "%s took %d damage from %s! Health: %d"
-                % (kreature.name, damage, self.name, kreature.health)
-            )
+            # Target creature counter-attacks if still alive
+            if kreature.health > 0:
+                damage = random.randint(15, 25)  # Random damage between 15-25
+                self.health -= damage
+                if self.health <= 0:
+                    kreature.log.append(
+                        "%s fought and ate %s!" % (kreature.name, self.name)
+                    )
+                    self.log.append("%s was eaten by %s!" % (self.name, kreature.name))
+                    kreature.stats.numCreaturesEaten += 1
+                    break
+                else:
+                    kreature.log.append(
+                        "%s fought %s and dealt %d damage!"
+                        % (kreature.name, self.name, damage)
+                    )
+                    self.log.append(
+                        "%s took %d damage from %s! Health: %d"
+                        % (self.name, damage, kreature.name, self.health)
+                    )
 
     def befriend(self, kreature):
         self.log.append("%s made friends with %s!" % (self.name, kreature.name))

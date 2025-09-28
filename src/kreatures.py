@@ -64,9 +64,11 @@ class Kreatures:
                 entity.increaseChanceToFight()
                 entity.decreaseChanceToBefriend()
                 entity.fight(target)
-                # Check if target died from the fight
+                # Check if either entity died from the fight to the death
                 if not target.isAlive() and target not in entities_to_remove:
                     entities_to_remove.append(target)
+                if not entity.isAlive() and entity not in entities_to_remove:
+                    entities_to_remove.append(entity)
             elif decision == "befriend":
                 entity.increaseChanceToBefriend()
                 entity.decreaseChanceToFight()
