@@ -139,3 +139,17 @@ class LivingEntity(object):
     def isAlive(self):
         """Check if the entity is still alive (health > 0)"""
         return self.health > 0
+
+    def regenerateHealth(self):
+        """Regenerate a small amount of health over time"""
+        if (
+            self.health < self.maxHealth and random.randint(1, 10) <= 3
+        ):  # 30% chance per tick
+            regeneration = random.randint(1, 3)  # Regenerate 1-3 health per tick
+            self.health = min(self.health + regeneration, self.maxHealth)
+            # Only log significant regeneration events to avoid spam
+            if regeneration >= 2:
+                self.log.append(
+                    "%s regenerated %d health! Health: %d/%d"
+                    % (self.name, regeneration, self.health, self.maxHealth)
+                )

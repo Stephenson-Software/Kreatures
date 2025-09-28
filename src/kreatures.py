@@ -78,6 +78,12 @@ class Kreatures:
         for entity in entities_to_remove:
             self.environment.removeEntity(entity)
 
+    def regenerateAllEntities(self):
+        """Regenerate health for all living entities"""
+        for entity in self.environment.getEntities():
+            if entity.isAlive():
+                entity.regenerateHealth()
+
     def createEntity(self):
         newEntity = LivingEntity(self.names[random.randint(0, len(self.names) - 1)])
         self.environment.addEntity(newEntity)
@@ -218,6 +224,7 @@ class Kreatures:
                 pass
 
             self.initiateEntityActions()
+            self.regenerateAllEntities()  # Regenerate health for all entities
             time.sleep(self.config.tickLength)
             self.tick += 1
             if self.tick >= self.config.maxTicks:
