@@ -9,12 +9,14 @@ from stats.stats import Stats
 class LivingEntity(object):
 	def __init__(self, name):
 		self.name = name
-		self.chanceToFight = random.randint(45, 55)
+		self.chanceToFight = random.randint(45, 55)  # Back to normal values
 		self.chanceToBefriend = 100 - self.chanceToFight
 		self.log = ["%s was created." % self.name]
 		self.friends = []
 		self.stats = Stats()
 		self.flags = Flags()
+		self.parents = []  # Track parent entities  
+		self.children = []  # Track child entities
 	
 	def rollForMovement(self):
 		if random.randint(1,10) == 1:
@@ -43,6 +45,8 @@ class LivingEntity(object):
 		kreature.log.append("%s made a baby with %s!" % (kreature.name, self.name))
 		self.stats.numOffspring += 1
 		kreature.stats.numOffspring += 1
+		# Return the parent entities so the child can be created with proper references
+		return (self, kreature)
 	
 	def fight(self, kreature):
 		self.log.append("%s fought and ate %s!" % (self.name, kreature.name))
@@ -76,3 +80,11 @@ class LivingEntity(object):
 		self.chanceToBefriend -= self.flags.increaseAmount
 		if (self.chanceToBefriend < 0):
 			self.chanceToBefriend = 0
+	
+	def addChild(self, child):
+		"""Add a child to this entity's children list"""
+		self.children.append(child)
+	
+	def addParent(self, parent):
+		"""Add a parent to this entity's parents list"""
+		self.parents.append(parent)
