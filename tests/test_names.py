@@ -291,6 +291,70 @@ class TestNames(unittest.TestCase):
             f"Names should start with diverse letters. Found: {sorted(first_letters)}",
         )
 
+    def test_names_loaded_from_config_file(self):
+        """Test that names are successfully loaded from configuration file"""
+        # This test verifies that the _load_names method works correctly
+        self.assertIsInstance(self.kreatures.names, list)
+        self.assertEqual(len(self.kreatures.names), 403)
+
+        # Verify that the names loaded match what we expect from the config file
+        expected_first_names = ["Jesse", "Juan", "Jose", "Ralph", "Jeremy"]
+        actual_first_names = self.kreatures.names[:5]
+        self.assertEqual(actual_first_names, expected_first_names)
+
+    def test_config_file_fallback_behavior(self):
+        """Test fallback behavior when config file is missing or corrupted"""
+        from unittest.mock import patch
+        from kreatures import Kreatures
+
+        # Test with missing config file
+        with patch("os.path.join") as mock_join:
+            mock_join.return_value = "/nonexistent/path/names.json"
+            with patch("builtins.input", return_value="TestPlayer"), patch(
+                "builtins.print"
+            ):
+                k = Kreatures()
+                # Should fallback to 15 original names
+                self.assertEqual(len(k.names), 15)
+                self.assertIn("Jesse", k.names)
+                self.assertIn("Adam", k.names)
+
+    def test_config_file_json_structure(self):
+        """Test that the config file has the expected JSON structure"""
+        import json
+        import os
+
+        # Get path to names.json
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        names_file = os.path.join(current_dir, "src", "config", "names.json")
+
+        # Verify file exists
+        self.assertTrue(os.path.exists(names_file))
+
+        # Verify JSON structure
+        with open(names_file, "r") as f:
+            config = json.load(f)
+
+        self.assertIn("names", config)
+        self.assertIn("metadata", config)
+        self.assertIsInstance(config["names"], list)
+        self.assertEqual(len(config["names"]), 403)
+
+        # Verify metadata structure
+        metadata = config["metadata"]
+        self.assertIn("total_count", metadata)
+        self.assertIn("description", metadata)
+        self.assertEqual(metadata["total_count"], 403)
+
+    def test_load_names_method_directly(self):
+        """Test the _load_names method directly"""
+        names = self.kreatures._load_names()
+
+        self.assertIsInstance(names, list)
+        self.assertEqual(len(names), 403)
+        self.assertIn("Jesse", names)  # First original name
+        self.assertIn("Whitney", names)  # Last name in current list
+
 
 if __name__ == "__main__":
     unittest.main()
