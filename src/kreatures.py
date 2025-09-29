@@ -37,6 +37,10 @@ class Kreatures:
         self.running = True
         self.config = Config()
         self.tick = 0
+        
+        # Initialize player early-game protection
+        self.playerCreature.damageReduction = self.config.playerDamageReduction
+        self.playerCreature.log.append("%s has early-game protection!" % self.playerCreature.name)
 
     def initiateEntityActions(self):
         entities_to_remove = []  # Track entities that die this turn
@@ -59,8 +63,18 @@ class Kreatures:
                 entity.decreaseChanceToFight()
                 self.createChildEntity(parents[0], parents[1])
             elif decision == "fight":
-                if target == self.playerCreature and self.config.godMode:
-                    continue
+                # Enhanced protection: during grace period, reduce attacks on player
+                if target == self.playerCreature:
+                    if self.config.godMode:
+                        continue
+                    # During grace period, 85% chance to skip attacking the player
+                    if (self.tick < self.config.earlyGameGracePeriod and 
+                        random.randint(1, 100) <= 85):
+                        entity.log.append(
+                            "%s decided not to attack %s." % (entity.name, target.name)
+                        )
+                        continue
+                
                 entity.increaseChanceToFight()
                 entity.decreaseChanceToBefriend()
                 entity.fight(target)
@@ -77,6 +91,14 @@ class Kreatures:
         # Remove all entities that died this turn
         for entity in entities_to_remove:
             self.environment.removeEntity(entity)
+
+    def updatePlayerProtection(self):
+        """Update player protection based on current tick"""
+        if self.tick >= self.config.earlyGameGracePeriod:
+            # Grace period has ended
+            if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
+                self.playerCreature.damageReduction = 0
+                self.playerCreature.log.append("%s's protection has worn off!" % self.playerCreature.name)
 
     def regenerateAllEntities(self):
         """Regenerate health for all living entities"""
@@ -186,6 +208,12 @@ class Kreatures:
             "%s's chance to be nice was %d percent."
             % (self.playerCreature.name, self.playerCreature.chanceToBefriend)
         )
+        
+        # Show protection status
+        if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
+            protection_percent = int(self.playerCreature.damageReduction * 100)
+            print("%s still has %d%% damage reduction." % (self.playerCreature.name, protection_percent))
+        
         if self.playerCreature.isAlive():
             print(
                 "%s ended with %d health (out of %d max)."
@@ -198,6 +226,7 @@ class Kreatures:
         else:
             print("%s died during the simulation." % self.playerCreature.name)
         print("Kreatures still alive: %d" % self.environment.getNumEntities())
+        print("Simulation ran for %d ticks." % self.tick)
 
     def printStats(self):
         print("=== Stats ===")
@@ -224,6 +253,7 @@ class Kreatures:
                 pass
 
             self.initiateEntityActions()
+            self.updatePlayerProtection()  # Update player protection status
             self.regenerateAllEntities()  # Regenerate health for all entities
             time.sleep(self.config.tickLength)
             self.tick += 1
@@ -238,5 +268,6 @@ class Kreatures:
         self.printStats()
 
 
-kreatures = Kreatures()
-kreatures.run()
+if __name__ == "__main__":
+    kreatures = Kreatures()
+    kreatures.run()
