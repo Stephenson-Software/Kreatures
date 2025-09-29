@@ -138,7 +138,6 @@ class Kreatures:
             "Hunter",
             "Ian",
             "Jaxon",
-            "Kai",
             "Liam",
             "Luna",
             "Madison",
