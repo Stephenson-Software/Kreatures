@@ -1,5 +1,7 @@
 # Copyright (c) 2022 Daniel McCoy Stephenson
 # Apache License 2.0
+import json
+import os
 import random
 import time
 from world.world import World
@@ -11,24 +13,7 @@ from config.config import Config
 class Kreatures:
     def __init__(self):
         self.environment = World()
-
-        self.names = [
-            "Jesse",
-            "Juan",
-            "Jose",
-            "Ralph",
-            "Jeremy",
-            "Bobby",
-            "Johnny",
-            "Douglas",
-            "Peter",
-            "Scott",
-            "Kyle",
-            "Billy",
-            "Terry",
-            "Randy",
-            "Adam",
-        ]
+        self.names = self._load_names()
 
         print("What would you like to name your kreature?")
         self.creatureName = input("> ")
@@ -41,6 +26,38 @@ class Kreatures:
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
         self.playerCreature.log.append("%s has early-game protection!" % self.playerCreature.name)
+
+    def _load_names(self):
+        """Load names from configuration file"""
+        try:
+            # Get the directory of this file to build the path to names.json
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            names_file = os.path.join(current_dir, "config", "names.json")
+
+            with open(names_file, "r") as f:
+                config = json.load(f)
+                return config["names"]
+        except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+            # Fallback to a minimal set of names if config file is missing/corrupted
+            print(f"Warning: Could not load names from config file: {e}")
+            print("Using fallback names list.")
+            return [
+                "Jesse",
+                "Juan",
+                "Jose",
+                "Ralph",
+                "Jeremy",
+                "Bobby",
+                "Johnny",
+                "Douglas",
+                "Peter",
+                "Scott",
+                "Kyle",
+                "Billy",
+                "Terry",
+                "Randy",
+                "Adam",
+            ]
 
     def initiateEntityActions(self):
         entities_to_remove = []  # Track entities that die this turn
