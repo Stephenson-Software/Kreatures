@@ -23,7 +23,6 @@ class World(object):
         self.Jasper = LivingEntity("Jasper")
 
         self.starterEntities = [
-            "placeholder",
             self.Alison,
             self.Barry,
             self.Conrad,
@@ -52,4 +51,33 @@ class World(object):
         return self.entities
 
     def getRandomEntity(self):
+        if len(self.entities) == 0:
+            return None
         return self.entities[random.randint(0, len(self.entities) - 1)]
+
+    def cullWeakestEntities(self, targetCount, protectedEntity=None):
+        """Remove the weakest entities to reduce population to targetCount"""
+        if len(self.entities) <= targetCount:
+            return []
+        
+        # Create list of entities that can be culled (excluding protected entity)
+        cullable_entities = [e for e in self.entities if e != protectedEntity and hasattr(e, 'health')]
+        
+        if len(cullable_entities) == 0:
+            return []
+        
+        # Sort by health (weakest first), then by number of children (fewer children first)
+        cullable_entities.sort(key=lambda x: (x.health, len(getattr(x, 'children', []))))
+        
+        # Calculate how many to remove
+        entities_to_remove = len(self.entities) - targetCount
+        entities_to_remove = min(entities_to_remove, len(cullable_entities))
+        
+        # Remove the weakest entities
+        removed_entities = []
+        for i in range(entities_to_remove):
+            entity = cullable_entities[i]
+            self.removeEntity(entity)
+            removed_entities.append(entity)
+            
+        return removed_entities

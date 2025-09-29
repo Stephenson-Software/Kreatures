@@ -40,7 +40,7 @@ class Kreatures:
         
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
-        self.playerCreature.log.append("%s has early-game protection!" % self.playerCreature.name)
+        self.playerCreature.addLogEntry("%s has early-game protection!" % self.playerCreature.name)
 
     def initiateEntityActions(self):
         entities_to_remove = []  # Track entities that die this turn
@@ -48,13 +48,13 @@ class Kreatures:
         for entity in self.environment.getEntities():
             target = self.environment.getRandomEntity()
 
-            if target == entity:
+            if target == entity or target is None:
                 continue
 
             decision = entity.getNextAction(target)
 
             if decision == "nothing":
-                entity.log.append(
+                entity.addLogEntry(
                     "%s had an argument with %s!" % (entity.name, target.name)
                 )
             elif decision == "love":
@@ -70,7 +70,7 @@ class Kreatures:
                     # During grace period, 85% chance to skip attacking the player
                     if (self.tick < self.config.earlyGameGracePeriod and 
                         random.randint(1, 100) <= 85):
-                        entity.log.append(
+                        entity.addLogEntry(
                             "%s decided not to attack %s." % (entity.name, target.name)
                         )
                         continue
@@ -91,6 +91,9 @@ class Kreatures:
         # Remove all entities that died this turn
         for entity in entities_to_remove:
             self.environment.removeEntity(entity)
+        
+        # Manage population to prevent lag
+        self.managePopulation()
 
     def updatePlayerProtection(self):
         """Update player protection based on current tick"""
@@ -98,7 +101,25 @@ class Kreatures:
             # Grace period has ended
             if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
                 self.playerCreature.damageReduction = 0
-                self.playerCreature.log.append("%s's protection has worn off!" % self.playerCreature.name)
+                self.playerCreature.addLogEntry("%s's protection has worn off!" % self.playerCreature.name)
+
+    def managePopulation(self):
+        """Manage entity population to prevent performance issues"""
+        current_count = self.environment.getNumEntities()
+        
+        # Check if we need to cull entities
+        cull_threshold = int(self.config.maxEntities * self.config.entityCullThreshold)
+        
+        if current_count > cull_threshold:
+            target_count = int(self.config.maxEntities * 0.7)  # Reduce to 70% of max
+            removed_entities = self.environment.cullWeakestEntities(target_count, self.playerCreature)
+            
+            if removed_entities:
+                print(f"Population management: Removed {len(removed_entities)} weak entities (Population: {current_count} -> {self.environment.getNumEntities()})")
+
+    def canCreateNewEntity(self):
+        """Check if we can create a new entity without exceeding limits"""
+        return self.environment.getNumEntities() < self.config.maxEntities
 
     def regenerateAllEntities(self):
         """Regenerate health for all living entities"""
@@ -107,11 +128,20 @@ class Kreatures:
                 entity.regenerateHealth()
 
     def createEntity(self):
+        if not self.canCreateNewEntity():
+            return None
         newEntity = LivingEntity(self.names[random.randint(0, len(self.names) - 1)])
         self.environment.addEntity(newEntity)
+        return newEntity
 
     def createChildEntity(self, parent1, parent2):
         """Create a child entity with proper parent-child relationships"""
+        if not self.canCreateNewEntity():
+            # Population limit reached, no new child can be created
+            parent1.addLogEntry(f"{parent1.name} and {parent2.name} tried to have a child, but the world is too crowded!")
+            parent2.addLogEntry(f"{parent1.name} and {parent2.name} tried to have a child, but the world is too crowded!")
+            return None
+            
         childName = self.names[random.randint(0, len(self.names) - 1)]
         child = LivingEntity(childName)
 
@@ -130,8 +160,9 @@ class Kreatures:
         child.health = parentHealthAvg + random.randint(-10, 10)  # Add some variation
         child.maxHealth = child.health
 
-        child.log.append(
-            "%s is the child of %s and %s." % (childName, parent1.name, parent2.name)
+        child.addLogEntry(
+            "%s is the child of %s and %s." % (childName, parent1.name, parent2.name),
+            self.config.entityLogMaxSize
         )
 
         self.environment.addEntity(child)
