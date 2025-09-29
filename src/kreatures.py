@@ -268,5 +268,6 @@ class Kreatures:
         self.printStats()
 
 
-kreatures = Kreatures()
-kreatures.run()
+if __name__ == "__main__":
+    kreatures = Kreatures()
+    kreatures.run()
