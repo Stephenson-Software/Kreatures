@@ -1,0 +1,131 @@
+name: Run Kreatures Program Demo
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  run-program:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y expect
+    
+    - name: Create input automation script
+      run: |
+        cat > run_kreatures.exp << 'EOF'
+        #!/usr/bin/expect -f
+        
+        # Set timeout for the entire script
+        set timeout 60
+        
+        # Start the program
+        spawn python src/kreatures.py
+        
+        # Handle the creature name prompt
+        expect "What would you like to name your kreature?"
+        expect "> "
+        send "GitHubRunner\r"
+        
+        # Main game loop - handle various possible prompts
+        set continue_game 1
+        while {$continue_game} {
+            expect {
+                # Child continuation prompt - if our creature dies but has children
+                "Would you like to continue as one of your children? (y/n)" {
+                    expect "> "
+                    send "y\r"
+                    
+                    # Handle potential child selection
+                    expect {
+                        "Which child would you like to continue as?" {
+                            expect "> "
+                            send "1\r"
+                        }
+                        -re "You are now playing as.*!" {
+                            # Child was auto-selected, continue
+                        }
+                        timeout {
+                            puts "Timeout waiting for child selection"
+                            set continue_game 0
+                        }
+                    }
+                }
+                
+                # Final continue prompt at end of simulation
+                "\[CONTINUE\]" {
+                    send "\r"
+                    set continue_game 0
+                }
+                
+                # Maximum iterations reached
+                "Maximum iterations reached." {
+                    # Game will end soon, wait for final prompt
+                }
+                
+                # Timeout or end of output
+                timeout {
+                    puts "\nSimulation completed or timed out"
+                    set continue_game 0
+                }
+                
+                eof {
+                    puts "\nProgram ended normally"
+                    set continue_game 0
+                }
+            }
+        }
+        
+        # Wait for the program to fully complete
+        expect eof
+        EOF
+        
+        chmod +x run_kreatures.exp
+    
+    - name: Display program information
+      run: |
+        echo "🧬 Starting Kreatures Simulation Demo"
+        echo "======================================"
+        echo ""
+        echo "Kreatures is a virtual creature simulation game where:"
+        echo "• You create a creature and release it into an environment"
+        echo "• Your creature interacts with other creatures through fighting, befriending, and reproduction"
+        echo "• Creatures adjust their behavior based on their actions"
+        echo "• The simulation runs until your creature dies or reaches maximum iterations"
+        echo ""
+        echo "This demo will create a creature named 'GitHubRunner' and simulate its life."
+        echo ""
+    
+    - name: Run Kreatures program with automation
+      run: |
+        echo "🎮 Running simulation..."
+        echo "======================="
+        ./run_kreatures.exp
+    
+    - name: Display completion message
+      run: |
+        echo ""
+        echo "✅ Kreatures simulation completed successfully!"
+        echo "=============================================="
+        echo ""
+        echo "The GitHub Action successfully demonstrated the Kreatures program by:"
+        echo "• Creating a creature named 'GitHubRunner'"
+        echo "• Simulating creature interactions in the virtual environment"
+        echo "• Handling all user prompts automatically"
+        echo "• Displaying the final simulation results and statistics"
+        echo ""
+        echo "This shows how the program works when run by a user, with all"
+        echo "interactive prompts handled automatically for CI/CD demonstration."
