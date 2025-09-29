@@ -12,5 +12,5 @@ class Config:
         
         # Early-game survival settings
         self.earlyGameGracePeriod = 50  # Number of ticks of protection for player
-        self.playerDamageReduction = 0.25  # 25% damage reduction for player during grace period
-        # During grace period, other creatures have 75% chance to avoid attacking player
+        self.playerDamageReduction = 0.4  # 40% damage reduction for player during grace period
+        # During grace period, other creatures have 85% chance to avoid attacking player

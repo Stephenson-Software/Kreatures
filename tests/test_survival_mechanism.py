@@ -16,7 +16,7 @@ def test_damage_reduction_applied():
     defender = LivingEntity("Defender")
     
     # Give defender damage reduction
-    defender.damageReduction = 0.25  # 25% damage reduction
+    defender.damageReduction = 0.4  # 40% damage reduction
     
     # Record initial health
     initial_health = defender.health
@@ -30,7 +30,7 @@ def test_damage_reduction_applied():
         # Make attacker attack defender once, then stop the fight early
         original_health = defender.health
         damage = 20
-        reduced_damage = int(damage * (1 - defender.damageReduction))  # Should be 15
+        reduced_damage = int(damage * (1 - defender.damageReduction))  # Should be 12
         
         # Apply damage manually to test calculation
         defender.health -= reduced_damage
@@ -38,7 +38,7 @@ def test_damage_reduction_applied():
         # Verify damage reduction worked
         expected_health = original_health - reduced_damage
         assert defender.health == expected_health
-        assert reduced_damage == 15  # 20 * 0.75 = 15
+        assert reduced_damage == 12  # 20 * 0.6 = 12
         
     finally:
         # Restore original random function
@@ -55,7 +55,7 @@ def test_config_survival_settings():
     
     # Check default values
     assert config.earlyGameGracePeriod == 50
-    assert config.playerDamageReduction == 0.25
+    assert config.playerDamageReduction == 0.4
 
 
 def test_minimum_damage():

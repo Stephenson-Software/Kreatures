@@ -67,9 +67,9 @@ class Kreatures:
                 if target == self.playerCreature:
                     if self.config.godMode:
                         continue
-                    # During grace period, 75% chance to skip attacking the player
+                    # During grace period, 85% chance to skip attacking the player
                     if (self.tick < self.config.earlyGameGracePeriod and 
-                        random.randint(1, 100) <= 75):
+                        random.randint(1, 100) <= 85):
                         entity.log.append(
                             "%s decided not to attack %s." % (entity.name, target.name)
                         )
