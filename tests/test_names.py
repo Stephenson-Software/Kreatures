@@ -73,7 +73,7 @@ class TestNames(unittest.TestCase):
     def test_names_list_expanded(self):
         """Test that names list has been significantly expanded"""
         # Should be much larger than the original 15 names
-        self.assertGreater(len(self.kreatures.names), 50)
+        self.assertGreater(len(self.kreatures.names), 400)
 
     def test_names_include_diverse_names(self):
         """Test that expanded names include diverse/modern names"""
@@ -221,7 +221,7 @@ class TestNames(unittest.TestCase):
             ):
                 selected_names.add(entity.name)
 
-        # With 158 names and 50 entities, we should get reasonable variety
+        # With 403 names and 50 entities, we should get reasonable variety
         # Expect at least 10 different names (conservative estimate accounting for randomness)
         self.assertGreaterEqual(
             len(selected_names),
@@ -274,8 +274,8 @@ class TestNames(unittest.TestCase):
 
     def test_exact_name_count(self):
         """Test that we have exactly the expected number of names"""
-        # Should be 158 names total (15 original + 143 new, with duplicate removed)
-        self.assertEqual(len(self.kreatures.names), 158)
+        # Should be 403 names total (15 original + 388 new)
+        self.assertEqual(len(self.kreatures.names), 403)
 
     def test_name_distribution_across_alphabet(self):
         """Test that names are distributed across different starting letters"""
@@ -284,10 +284,10 @@ class TestNames(unittest.TestCase):
             first_letters.add(name[0].upper())
 
         # Should have names starting with various letters of the alphabet
-        # With 158 diverse names, we should have at least 15 different starting letters
+        # With 403 diverse names, we should have at least 20 different starting letters
         self.assertGreaterEqual(
             len(first_letters),
-            15,
+            20,
             f"Names should start with diverse letters. Found: {sorted(first_letters)}",
         )
 
