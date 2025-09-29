@@ -14,3 +14,8 @@ class Config:
         self.earlyGameGracePeriod = 50  # Number of ticks of protection for player
         self.playerDamageReduction = 0.4  # 40% damage reduction for player during grace period
         # During grace period, other creatures have 85% chance to avoid attacking player
+        
+        # Population control settings to prevent lag
+        self.maxEntities = 100  # Maximum number of entities allowed in simulation
+        self.entityCullThreshold = 0.9  # Cull entities when population reaches 90% of max
+        self.entityLogMaxSize = 50  # Maximum number of log entries per entity to prevent memory bloat
