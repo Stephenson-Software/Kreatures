@@ -38,6 +38,9 @@ class Kreatures:
         self.config = Config()
         self.tick = 0
         
+        # Performance monitoring for dynamic entity limits
+        self.tickTimes = []  # Store recent tick times for lag detection
+        
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
         self.playerCreature.addLogEntry("%s has early-game protection!" % self.playerCreature.name)
@@ -223,6 +226,37 @@ class Kreatures:
 
         return False
 
+    def monitorPerformance(self, tick_duration):
+        """Monitor tick performance and adjust max entities dynamically"""
+        # Track recent tick times
+        self.tickTimes.append(tick_duration)
+        
+        # Keep only recent performance window
+        if len(self.tickTimes) > self.config.performanceWindow:
+            self.tickTimes = self.tickTimes[-self.config.performanceWindow:]
+        
+        # Only adjust after we have some data
+        if len(self.tickTimes) >= 5:
+            avg_tick_time = sum(self.tickTimes) / len(self.tickTimes)
+            self.adjustMaxEntitiesBasedOnLag(avg_tick_time)
+
+    def adjustMaxEntitiesBasedOnLag(self, avg_tick_time):
+        """Dynamically adjust max entities based on performance"""
+        current_max = self.config.maxEntities
+        
+        if avg_tick_time > self.config.lagThreshold:
+            # Performance is poor, reduce max entities
+            new_max = max(self.config.minEntities, int(current_max * 0.8))
+            if new_max != current_max:
+                self.config.maxEntities = new_max
+                print(f"Performance lag detected (avg: {avg_tick_time:.3f}s). Reducing max entities to {new_max}")
+        elif avg_tick_time < self.config.lagThreshold * 0.5:
+            # Performance is good, cautiously increase max entities
+            new_max = min(self.config.maxEntitiesLimit, int(current_max * 1.1))
+            if new_max != current_max and self.environment.getNumEntities() > current_max * 0.8:
+                self.config.maxEntities = new_max
+                print(f"Good performance (avg: {avg_tick_time:.3f}s). Increasing max entities to {new_max}")
+
     def printSummary(self):
         print("=== Summary ===")
         if self.playerCreature.chanceToFight > self.playerCreature.chanceToBefriend:
@@ -258,6 +292,12 @@ class Kreatures:
             print("%s died during the simulation." % self.playerCreature.name)
         print("Kreatures still alive: %d" % self.environment.getNumEntities())
         print("Simulation ran for %d ticks." % self.tick)
+        
+        # Show performance and dynamic entity limit info
+        if self.tickTimes:
+            avg_tick_time = sum(self.tickTimes) / len(self.tickTimes)
+            print("Average tick time: %.4f seconds" % avg_tick_time)
+        print("Final max entities limit: %d (started at 50)" % self.config.maxEntities)
 
     def printStats(self):
         print("=== Stats ===")
@@ -283,9 +323,19 @@ class Kreatures:
             except:  # if list is empty, just keep going
                 pass
 
+            # Monitor performance and run simulation tick
+            tick_start_time = time.time()
+            
             self.initiateEntityActions()
             self.updatePlayerProtection()  # Update player protection status
             self.regenerateAllEntities()  # Regenerate health for all entities
+            
+            tick_end_time = time.time()
+            tick_duration = tick_end_time - tick_start_time
+            
+            # Track performance and adjust entity limits dynamically
+            self.monitorPerformance(tick_duration)
+            
             time.sleep(self.config.tickLength)
             self.tick += 1
             if self.tick >= self.config.maxTicks:

@@ -16,6 +16,12 @@ class Config:
         # During grace period, other creatures have 85% chance to avoid attacking player
         
         # Population control settings to prevent lag
-        self.maxEntities = 100  # Maximum number of entities allowed in simulation
+        self.maxEntities = 50  # Starting maximum number of entities (will adjust dynamically)
+        self.minEntities = 20   # Minimum entities to maintain for gameplay
+        self.maxEntitiesLimit = 200  # Hard upper limit for entities
         self.entityCullThreshold = 0.9  # Cull entities when population reaches 90% of max
         self.entityLogMaxSize = 50  # Maximum number of log entries per entity to prevent memory bloat
+        
+        # Dynamic performance monitoring settings
+        self.lagThreshold = 0.05  # Tick time in seconds that indicates lag (50ms)
+        self.performanceWindow = 10  # Number of recent ticks to analyze for performance
