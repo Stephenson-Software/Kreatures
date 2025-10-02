@@ -1,1 +1,6 @@
 *.pyc
+.coverage
+cov.xml
+__pycache__/
+*.py[cod]
+*$py.class
