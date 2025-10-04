@@ -22,10 +22,12 @@ class Kreatures:
         self.running = True
         self.config = Config()
         self.tick = 0
-        
+
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
-        self.playerCreature.log.append("%s has early-game protection!" % self.playerCreature.name)
+        self.playerCreature.log.append(
+            "%s has early-game protection!" % self.playerCreature.name
+        )
 
     def _load_names(self):
         """Load names from configuration file"""
@@ -85,13 +87,15 @@ class Kreatures:
                     if self.config.godMode:
                         continue
                     # During grace period, 85% chance to skip attacking the player
-                    if (self.tick < self.config.earlyGameGracePeriod and 
-                        random.randint(1, 100) <= 85):
+                    if (
+                        self.tick < self.config.earlyGameGracePeriod
+                        and random.randint(1, 100) <= 85
+                    ):
                         entity.log.append(
                             "%s decided not to attack %s." % (entity.name, target.name)
                         )
                         continue
-                
+
                 entity.increaseChanceToFight()
                 entity.decreaseChanceToBefriend()
                 entity.fight(target)
@@ -113,12 +117,24 @@ class Kreatures:
         """Update player protection based on current tick"""
         if self.tick >= self.config.earlyGameGracePeriod:
             # Grace period has ended
-            if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
+            if (
+                hasattr(self.playerCreature, "damageReduction")
+                and self.playerCreature.damageReduction > 0
+            ):
                 self.playerCreature.damageReduction = 0
-                self.playerCreature.log.append("%s's protection has worn off!" % self.playerCreature.name)
+                self.playerCreature.log.append(
+                    "%s's protection has worn off!" % self.playerCreature.name
+                )
 
     def regenerateAllEntities(self):
-        """Regenerate health for all living entities"""
+        """Regenerate health for all living entities
+
+        This method is called every game tick AFTER entities take their actions in
+        initiateEntityActions(). Health regeneration is a passive background process
+        that does not prevent entities from making decisions or taking actions.
+        Entities continue to fight, befriend, and reproduce regardless of their
+        health status or whether they are regenerating.
+        """
         for entity in self.environment.getEntities():
             if entity.isAlive():
                 entity.regenerateHealth()
@@ -225,12 +241,18 @@ class Kreatures:
             "%s's chance to be nice was %d percent."
             % (self.playerCreature.name, self.playerCreature.chanceToBefriend)
         )
-        
+
         # Show protection status
-        if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
+        if (
+            hasattr(self.playerCreature, "damageReduction")
+            and self.playerCreature.damageReduction > 0
+        ):
             protection_percent = int(self.playerCreature.damageReduction * 100)
-            print("%s still has %d%% damage reduction." % (self.playerCreature.name, protection_percent))
-        
+            print(
+                "%s still has %d%% damage reduction."
+                % (self.playerCreature.name, protection_percent)
+            )
+
         if self.playerCreature.isAlive():
             print(
                 "%s ended with %d health (out of %d max)."
@@ -269,9 +291,14 @@ class Kreatures:
             except:  # if list is empty, just keep going
                 pass
 
+            # Game tick order is important:
+            # 1. Entities take actions (fight, befriend, reproduce) based on their decision-making
             self.initiateEntityActions()
-            self.updatePlayerProtection()  # Update player protection status
-            self.regenerateAllEntities()  # Regenerate health for all entities
+            # 2. Update player protection status based on current tick
+            self.updatePlayerProtection()
+            # 3. Passive health regeneration happens AFTER actions, as a background process
+            #    This ensures entities can take actions regardless of health/regeneration status
+            self.regenerateAllEntities()
             time.sleep(self.config.tickLength)
             self.tick += 1
             if self.tick >= self.config.maxTicks:
