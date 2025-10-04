@@ -267,5 +267,94 @@ class TestHealthRegenerationMechanism(unittest.TestCase):
         self.assertEqual(entity.health, original_health)
 
 
+class TestHealthRegenerationIntegration(unittest.TestCase):
+    """Integration tests for health regeneration with game loop simulation"""
+
+    def test_entities_take_actions_across_multiple_ticks_while_regenerating(self):
+        """Test that entities continue taking actions across multiple game ticks while health regenerates"""
+        entity = LivingEntity("TestEntity")
+        target = LivingEntity("TargetEntity")
+
+        # Reduce health significantly
+        entity.health = entity.maxHealth - 50
+        initial_health = entity.health
+
+        # Simulate 10 game ticks (like the game loop does)
+        action_count = 0
+        regen_count = 0
+
+        for tick in range(10):
+            # Step 1: Entity takes an action (initiateEntityActions)
+            with patch("random.randint") as mock_random:
+                mock_random.return_value = 70  # Befriend action
+                decision = entity.getNextAction(target)
+                if decision in ["fight", "befriend", "love"]:
+                    action_count += 1
+
+            # Step 2: Entity regenerates health (regenerateAllEntities)
+            old_health = entity.health
+            with patch("random.randint") as mock_random:
+                # Trigger regeneration every 3rd tick
+                if tick % 3 == 0:
+                    mock_random.side_effect = [2, 2]
+                    entity.regenerateHealth()
+                    if entity.health > old_health:
+                        regen_count += 1
+                else:
+                    mock_random.return_value = 5  # Don't trigger
+                    entity.regenerateHealth()
+
+        # Verify entity took actions every tick
+        self.assertEqual(action_count, 10, "Entity should take action every tick")
+
+        # Verify health increased from regeneration
+        self.assertGreater(
+            entity.health, initial_health, "Health should have increased"
+        )
+
+        # Verify regeneration happened
+        self.assertGreater(regen_count, 0, "Regeneration should have occurred")
+
+        # Verify entity continued functioning
+        self.assertTrue(entity.isAlive())
+        self.assertEqual(entity.stats.numActionsTaken, 10)
+
+    def test_game_tick_order_actions_then_regeneration(self):
+        """Test that game tick order is: actions first, then regeneration"""
+        entity = LivingEntity("TestEntity")
+        target = LivingEntity("TargetEntity")
+
+        # Reduce health
+        entity.health = entity.maxHealth - 30
+
+        # Clear log
+        entity.log.clear()
+
+        # Simulate one game tick with specific order
+        # Step 1: Take action
+        with patch("random.randint") as mock_random:
+            mock_random.return_value = 70
+            entity.getNextAction(target)
+        entity.befriend(target)
+
+        action_log_count = len(entity.log)
+
+        # Step 2: Regenerate (happens after action)
+        with patch("random.randint") as mock_random:
+            mock_random.side_effect = [2, 3]  # Trigger regeneration
+            entity.regenerateHealth()
+
+        total_log_count = len(entity.log)
+
+        # Both action and regeneration logs should exist
+        self.assertGreater(action_log_count, 0, "Action should be logged")
+        self.assertGreater(
+            total_log_count, action_log_count, "Regeneration should also be logged"
+        )
+
+        # Stats should show action was taken
+        self.assertGreater(entity.stats.numActionsTaken, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
