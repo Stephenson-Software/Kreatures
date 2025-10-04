@@ -58,10 +58,13 @@ class LivingEntity(object):
             if self.health > 0:
                 damage = random.randint(15, 25)  # Random damage between 15-25
                 # Apply damage reduction if target has it
-                if hasattr(kreature, 'damageReduction') and kreature.damageReduction > 0:
+                if (
+                    hasattr(kreature, "damageReduction")
+                    and kreature.damageReduction > 0
+                ):
                     damage = int(damage * (1 - kreature.damageReduction))
                     damage = max(damage, 1)  # Ensure at least 1 damage
-                
+
                 kreature.health -= damage
                 if kreature.health <= 0:
                     self.log.append(
@@ -86,10 +89,10 @@ class LivingEntity(object):
             if kreature.health > 0:
                 damage = random.randint(15, 25)  # Random damage between 15-25
                 # Apply damage reduction if target has it
-                if hasattr(self, 'damageReduction') and self.damageReduction > 0:
+                if hasattr(self, "damageReduction") and self.damageReduction > 0:
                     damage = int(damage * (1 - self.damageReduction))
                     damage = max(damage, 1)  # Ensure at least 1 damage
-                
+
                 self.health -= damage
                 if self.health <= 0:
                     kreature.log.append(
@@ -151,7 +154,13 @@ class LivingEntity(object):
         return self.health > 0
 
     def regenerateHealth(self):
-        """Regenerate a small amount of health over time"""
+        """Regenerate a small amount of health over time
+
+        This is a passive background process that does not interfere with entity actions.
+        Entities continue making decisions (fighting, befriending, reproducing) regardless
+        of their health status or regeneration state. This method is called separately from
+        getNextAction() to ensure regeneration happens alongside normal entity behavior.
+        """
         if (
             self.health < self.maxHealth and random.randint(1, 10) <= 3
         ):  # 30% chance per tick
