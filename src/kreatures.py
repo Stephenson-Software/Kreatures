@@ -25,7 +25,7 @@ class Kreatures:
         
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
-        self.playerCreature.log.append("%s has early-game protection!" % self.playerCreature.name)
+        self.playerCreature.addLogEntry("%s has early-game protection!" % self.playerCreature.name)
 
     def _load_names(self):
         """Load names from configuration file"""
@@ -60,7 +60,7 @@ class Kreatures:
             ]
 
     def initiateEntityActions(self):
-        entities_to_remove = []  # Track entities that die this turn
+        entities_to_remove = set()  # Use set for O(1) lookup
 
         for entity in self.environment.getEntities():
             target = self.environment.getRandomEntity()
@@ -71,7 +71,7 @@ class Kreatures:
             decision = entity.getNextAction(target)
 
             if decision == "nothing":
-                entity.log.append(
+                entity.addLogEntry(
                     "%s had an argument with %s!" % (entity.name, target.name)
                 )
             elif decision == "love":
@@ -87,7 +87,7 @@ class Kreatures:
                     # During grace period, 85% chance to skip attacking the player
                     if (self.tick < self.config.earlyGameGracePeriod and 
                         random.randint(1, 100) <= 85):
-                        entity.log.append(
+                        entity.addLogEntry(
                             "%s decided not to attack %s." % (entity.name, target.name)
                         )
                         continue
@@ -96,10 +96,10 @@ class Kreatures:
                 entity.decreaseChanceToBefriend()
                 entity.fight(target)
                 # Check if either entity died from the fight to the death
-                if not target.isAlive() and target not in entities_to_remove:
-                    entities_to_remove.append(target)
-                if not entity.isAlive() and entity not in entities_to_remove:
-                    entities_to_remove.append(entity)
+                if not target.isAlive():
+                    entities_to_remove.add(target)  # Set add is O(1)
+                if not entity.isAlive():
+                    entities_to_remove.add(entity)  # Set add is O(1)
             elif decision == "befriend":
                 entity.increaseChanceToBefriend()
                 entity.decreaseChanceToFight()
@@ -115,7 +115,7 @@ class Kreatures:
             # Grace period has ended
             if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
                 self.playerCreature.damageReduction = 0
-                self.playerCreature.log.append("%s's protection has worn off!" % self.playerCreature.name)
+                self.playerCreature.addLogEntry("%s's protection has worn off!" % self.playerCreature.name)
 
     def regenerateAllEntities(self):
         """Regenerate health for all living entities"""
@@ -147,7 +147,7 @@ class Kreatures:
         child.health = parentHealthAvg + random.randint(-10, 10)  # Add some variation
         child.maxHealth = child.health
 
-        child.log.append(
+        child.addLogEntry(
             "%s is the child of %s and %s." % (childName, parent1.name, parent2.name)
         )
 
