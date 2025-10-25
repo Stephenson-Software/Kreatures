@@ -22,10 +22,12 @@ class Kreatures:
         self.running = True
         self.config = Config()
         self.tick = 0
-        
+
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
-        self.playerCreature.addLogEntry("%s has early-game protection!" % self.playerCreature.name)
+        self.playerCreature.addLogEntry(
+            "%s has early-game protection!" % self.playerCreature.name
+        )
 
     def _load_names(self):
         """Load names from configuration file"""
@@ -85,13 +87,15 @@ class Kreatures:
                     if self.config.godMode:
                         continue
                     # During grace period, 85% chance to skip attacking the player
-                    if (self.tick < self.config.earlyGameGracePeriod and 
-                        random.randint(1, 100) <= 85):
+                    if (
+                        self.tick < self.config.earlyGameGracePeriod
+                        and random.randint(1, 100) <= 85
+                    ):
                         entity.addLogEntry(
                             "%s decided not to attack %s." % (entity.name, target.name)
                         )
                         continue
-                
+
                 entity.increaseChanceToFight()
                 entity.decreaseChanceToBefriend()
                 entity.fight(target)
@@ -113,9 +117,14 @@ class Kreatures:
         """Update player protection based on current tick"""
         if self.tick >= self.config.earlyGameGracePeriod:
             # Grace period has ended
-            if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
+            if (
+                hasattr(self.playerCreature, "damageReduction")
+                and self.playerCreature.damageReduction > 0
+            ):
                 self.playerCreature.damageReduction = 0
-                self.playerCreature.addLogEntry("%s's protection has worn off!" % self.playerCreature.name)
+                self.playerCreature.addLogEntry(
+                    "%s's protection has worn off!" % self.playerCreature.name
+                )
 
     def regenerateAllEntities(self):
         """Regenerate health for all living entities"""
@@ -225,12 +234,18 @@ class Kreatures:
             "%s's chance to be nice was %d percent."
             % (self.playerCreature.name, self.playerCreature.chanceToBefriend)
         )
-        
+
         # Show protection status
-        if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
+        if (
+            hasattr(self.playerCreature, "damageReduction")
+            and self.playerCreature.damageReduction > 0
+        ):
             protection_percent = int(self.playerCreature.damageReduction * 100)
-            print("%s still has %d%% damage reduction." % (self.playerCreature.name, protection_percent))
-        
+            print(
+                "%s still has %d%% damage reduction."
+                % (self.playerCreature.name, protection_percent)
+            )
+
         if self.playerCreature.isAlive():
             print(
                 "%s ended with %d health (out of %d max)."

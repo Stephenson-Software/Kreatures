@@ -9,7 +9,7 @@ from stats.stats import Stats
 # @since 2017
 class LivingEntity(object):
     MAX_LOG_SIZE = 50  # Limit log size to prevent unbounded memory growth
-    
+
     def __init__(self, name):
         self.name = name
         self.chanceToFight = random.randint(45, 55)  # Back to normal values
@@ -22,13 +22,13 @@ class LivingEntity(object):
         self.flags = Flags()
         self.parents = set()  # Use set for O(1) lookup
         self.children = set()  # Use set for O(1) lookup
-    
+
     def addLogEntry(self, entry):
         """Add a log entry with size limit to prevent unbounded growth"""
         self.log.append(entry)
         # Keep only the most recent MAX_LOG_SIZE entries
         if len(self.log) > self.MAX_LOG_SIZE:
-            self.log = self.log[-self.MAX_LOG_SIZE:]
+            self.log = self.log[-self.MAX_LOG_SIZE :]
 
     def rollForMovement(self):
         if random.randint(1, 10) == 1:
@@ -65,10 +65,13 @@ class LivingEntity(object):
             if self.health > 0:
                 damage = random.randint(15, 25)  # Random damage between 15-25
                 # Apply damage reduction if target has it
-                if hasattr(kreature, 'damageReduction') and kreature.damageReduction > 0:
+                if (
+                    hasattr(kreature, "damageReduction")
+                    and kreature.damageReduction > 0
+                ):
                     damage = int(damage * (1 - kreature.damageReduction))
                     damage = max(damage, 1)  # Ensure at least 1 damage
-                
+
                 kreature.health -= damage
                 if kreature.health <= 0:
                     self.addLogEntry(
@@ -93,10 +96,10 @@ class LivingEntity(object):
             if kreature.health > 0:
                 damage = random.randint(15, 25)  # Random damage between 15-25
                 # Apply damage reduction if target has it
-                if hasattr(self, 'damageReduction') and self.damageReduction > 0:
+                if hasattr(self, "damageReduction") and self.damageReduction > 0:
                     damage = int(damage * (1 - self.damageReduction))
                     damage = max(damage, 1)  # Ensure at least 1 damage
-                
+
                 self.health -= damage
                 if self.health <= 0:
                     kreature.addLogEntry(

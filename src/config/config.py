@@ -9,8 +9,10 @@ class Config:
         self.godMode = False  # Disable god mode
         self.maxTicks = 1000
         self.tickLength = 0.1
-        
+
         # Early-game survival settings
         self.earlyGameGracePeriod = 50  # Number of ticks of protection for player
-        self.playerDamageReduction = 0.4  # 40% damage reduction for player during grace period
+        self.playerDamageReduction = (
+            0.4  # 40% damage reduction for player during grace period
+        )
         # During grace period, other creatures have 85% chance to avoid attacking player
