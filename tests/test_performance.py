@@ -91,7 +91,7 @@ class TestPerformance(unittest.TestCase):
         start_time = time.time()
         for _ in range(1000):
             # Check if entity2 is a friend (not in the list)
-            entity2 in entity1.friends
+            is_friend = entity2 in entity1.friends  # Store result to avoid linter warning
 
         elapsed = time.time() - start_time
 
