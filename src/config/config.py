@@ -20,6 +20,7 @@ class Config:
         self.minEntities = 20   # Minimum entities to maintain for gameplay
         self.maxEntitiesLimit = 200  # Hard upper limit for entities
         self.entityCullThreshold = 0.9  # Cull entities when population reaches 90% of max
+        self.entityCullTarget = 0.7  # Reduce population to 70% of max when culling
         self.entityLogMaxSize = 50  # Maximum number of log entries per entity to prevent memory bloat
         
         # Dynamic performance monitoring settings

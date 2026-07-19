@@ -1,6 +1,7 @@
 # Copyright (c) 2022 Daniel McCoy Stephenson
 # Apache License 2.0
 import random
+from collections import deque
 from flags.flags import Flags
 from stats.stats import Stats
 
@@ -165,8 +166,14 @@ class LivingEntity(object):
                 )
 
     def addLogEntry(self, message, maxLogSize=50):
-        """Add a log entry and maintain log size limit"""
+        """Add a log entry and maintain log size limit.
+
+        Backed by a deque bounded to maxLogSize so repeated appends are O(1)
+        instead of copying up to maxLogSize elements on every call once the
+        cap is reached (this fires on nearly every action, every tick, for
+        every entity, so it's on the hot path this feature exists to keep
+        cheap).
+        """
+        if not isinstance(self.log, deque) or self.log.maxlen != maxLogSize:
+            self.log = deque(self.log, maxlen=maxLogSize)
         self.log.append(message)
-        # Keep only the most recent entries to prevent memory bloat
-        if len(self.log) > maxLogSize:
-            self.log = self.log[-maxLogSize:]

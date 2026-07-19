@@ -44,6 +44,16 @@ class World(object):
     def removeEntity(self, entity):
         self.entities.remove(entity)
 
+    def removeEntities(self, entities):
+        """Remove multiple entities in a single O(n) pass instead of one
+        O(n) list.remove() call per entity (which is O(n*k) overall and
+        directly undermines the population-limit feature's goal of
+        avoiding per-tick lag at high entity counts)."""
+        if not entities:
+            return
+        to_remove = set(entities)
+        self.entities = [e for e in self.entities if e not in to_remove]
+
     def getNumEntities(self):
         return len(self.entities)
 
@@ -61,23 +71,19 @@ class World(object):
             return []
         
         # Create list of entities that can be culled (excluding protected entity)
-        cullable_entities = [e for e in self.entities if e != protectedEntity and hasattr(e, 'health')]
-        
+        cullable_entities = [e for e in self.entities if e != protectedEntity]
+
         if len(cullable_entities) == 0:
             return []
-        
+
         # Sort by health (weakest first), then by number of children (fewer children first)
-        cullable_entities.sort(key=lambda x: (x.health, len(getattr(x, 'children', []))))
-        
+        cullable_entities.sort(key=lambda x: (x.health, len(x.children)))
+
         # Calculate how many to remove
-        entities_to_remove = len(self.entities) - targetCount
-        entities_to_remove = min(entities_to_remove, len(cullable_entities))
-        
-        # Remove the weakest entities
-        removed_entities = []
-        for i in range(entities_to_remove):
-            entity = cullable_entities[i]
-            self.removeEntity(entity)
-            removed_entities.append(entity)
-            
+        num_to_remove = min(len(self.entities) - targetCount, len(cullable_entities))
+
+        # Remove the weakest entities in a single O(n) pass
+        removed_entities = cullable_entities[:num_to_remove]
+        self.removeEntities(removed_entities)
+
         return removed_entities

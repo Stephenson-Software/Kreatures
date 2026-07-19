@@ -108,10 +108,10 @@ class Kreatures:
                 entity.decreaseChanceToFight()
                 entity.befriend(target)
 
-        # Remove all entities that died this turn
-        for entity in entities_to_remove:
-            self.environment.removeEntity(entity)
-        
+        # Remove all entities that died this turn in a single O(n) pass
+        # (avoids O(n) list.remove() per death, which is O(n*k) overall)
+        self.environment.removeEntities(entities_to_remove)
+
         # Manage population to prevent lag
         self.managePopulation()
 
@@ -131,7 +131,7 @@ class Kreatures:
         cull_threshold = int(self.config.maxEntities * self.config.entityCullThreshold)
         
         if current_count > cull_threshold:
-            target_count = int(self.config.maxEntities * 0.7)  # Reduce to 70% of max
+            target_count = int(self.config.maxEntities * self.config.entityCullTarget)
             removed_entities = self.environment.cullWeakestEntities(target_count, self.playerCreature)
             
             if removed_entities:
@@ -254,8 +254,13 @@ class Kreatures:
         
         # Only adjust after we have some data
         if len(self.tickTimes) >= 5:
-            avg_tick_time = sum(self.tickTimes) / len(self.tickTimes)
-            self.adjustMaxEntitiesBasedOnLag(avg_tick_time)
+            self.adjustMaxEntitiesBasedOnLag(self.getAverageTickTime())
+
+    def getAverageTickTime(self):
+        """Compute the average tick time over the tracked performance window"""
+        if not self.tickTimes:
+            return 0.0
+        return sum(self.tickTimes) / len(self.tickTimes)
 
     def adjustMaxEntitiesBasedOnLag(self, avg_tick_time):
         """Dynamically adjust max entities based on performance"""
@@ -312,8 +317,7 @@ class Kreatures:
         
         # Show performance and dynamic entity limit info
         if self.tickTimes:
-            avg_tick_time = sum(self.tickTimes) / len(self.tickTimes)
-            print("Average tick time: %.4f seconds" % avg_tick_time)
+            print("Average tick time: %.4f seconds" % self.getAverageTickTime())
         print("Final max entities limit: %d (started at 50)" % self.config.maxEntities)
 
     def printStats(self):
