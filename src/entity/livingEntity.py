@@ -5,17 +5,24 @@ from collections import deque
 from flags.flags import Flags
 from stats.stats import Stats
 
+# The single source of truth for how many log entries an entity retains.
+# Config.entityLogMaxSize reads this value rather than redeclaring it, so the
+# cap cannot drift between the two.
+DEFAULT_LOG_MAX_SIZE = 50
+
 
 # @author Daniel McCoy Stephenson
 # @since 2017
 class LivingEntity(object):
-    def __init__(self, name):
+    def __init__(self, name, maxLogSize=DEFAULT_LOG_MAX_SIZE):
         self.name = name
         self.chanceToFight = random.randint(45, 55)  # Back to normal values
         self.chanceToBefriend = 100 - self.chanceToFight
         self.health = random.randint(80, 120)  # Health between 80-120
         self.maxHealth = self.health  # Track maximum health for potential future use
-        self.log = ["%s was created." % self.name]
+        # The deque's maxlen is the cap; storing it separately would recreate
+        # the very duplication this parameter exists to remove.
+        self.log = deque(["%s was created." % self.name], maxlen=maxLogSize)
         self.friends = []
         self.stats = Stats()
         self.flags = Flags()
@@ -165,15 +172,13 @@ class LivingEntity(object):
                     % (self.name, regeneration, self.health, self.maxHealth)
                 )
 
-    def addLogEntry(self, message, maxLogSize=50):
-        """Add a log entry and maintain log size limit.
+    def addLogEntry(self, message):
+        """Add a log entry, dropping the oldest once the entity's cap is hit.
 
-        Backed by a deque bounded to maxLogSize so repeated appends are O(1)
-        instead of copying up to maxLogSize elements on every call once the
-        cap is reached (this fires on nearly every action, every tick, for
-        every entity, so it's on the hot path this feature exists to keep
-        cheap).
+        The cap belongs to the entity and is fixed at construction time, so
+        this is a bare O(1) append onto an already-bounded deque. Taking the
+        cap per call instead would let callers disagree about it and force the
+        deque to be rebuilt — an O(n) copy on a path that runs for every
+        entity on every action on every tick.
         """
-        if not isinstance(self.log, deque) or self.log.maxlen != maxLogSize:
-            self.log = deque(self.log, maxlen=maxLogSize)
         self.log.append(message)

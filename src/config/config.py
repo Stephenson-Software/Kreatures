@@ -1,5 +1,6 @@
 # Copyright (c) 2022 Daniel McCoy Stephenson
 # Apache License 2.0
+from entity.livingEntity import DEFAULT_LOG_MAX_SIZE
 
 
 # @author Daniel McCoy Stephenson
@@ -21,7 +22,10 @@ class Config:
         self.maxEntitiesLimit = 200  # Hard upper limit for entities
         self.entityCullThreshold = 0.9  # Cull entities when population reaches 90% of max
         self.entityCullTarget = 0.7  # Reduce population to 70% of max when culling
-        self.entityLogMaxSize = 50  # Maximum number of log entries per entity to prevent memory bloat
+        # Maximum number of log entries per entity to prevent memory bloat. The
+        # default is taken from the entity module so the cap has one definition;
+        # every entity is constructed with whatever this is set to.
+        self.entityLogMaxSize = DEFAULT_LOG_MAX_SIZE
         
         # Dynamic performance monitoring settings
         self.lagThreshold = 0.05  # Tick time in seconds that indicates lag (50ms)

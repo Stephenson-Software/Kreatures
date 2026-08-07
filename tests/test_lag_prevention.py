@@ -26,12 +26,12 @@ class TestPopulationControl:
 
     def test_entity_log_size_management(self):
         """Test that entity logs are kept within size limits"""
-        entity = LivingEntity("TestEntity")
-        
+        entity = LivingEntity("TestEntity", maxLogSize=10)
+
         # Add many log entries
         for i in range(100):
-            entity.addLogEntry(f"Log entry {i}", maxLogSize=10)
-        
+            entity.addLogEntry(f"Log entry {i}")
+
         # Should only keep the most recent 10 entries
         assert len(entity.log) == 10
         assert "Log entry 99" in entity.log[-1]
@@ -174,14 +174,48 @@ class TestPerformanceOptimizations:
     def test_entity_addlogentry_uses_config_limit(self):
         """Test that addLogEntry respects the configured log size limit"""
         config = Config()
-        entity = LivingEntity("TestEntity")
-        
+        entity = LivingEntity("TestEntity", config.entityLogMaxSize)
+
         # Add more entries than the config limit
         for i in range(config.entityLogMaxSize + 20):
-            entity.addLogEntry(f"Entry {i}", maxLogSize=config.entityLogMaxSize)
-        
+            entity.addLogEntry(f"Entry {i}")
+
         # Should not exceed the configured limit
         assert len(entity.log) <= config.entityLogMaxSize
+
+    def test_config_log_cap_is_the_only_source_of_truth(self):
+        """A non-default entityLogMaxSize must reach every entity the game creates.
+
+        The cap was previously declared twice — as a default parameter on
+        addLogEntry and as a Config field — so changing the config value left
+        most callers on the old default. A cap that is not 50 catches that:
+        with two sources of truth, entities built without the config value
+        keep the stale default.
+        """
+        from kreatures import Kreatures
+
+        customConfig = Config()
+        customConfig.entityLogMaxSize = 7
+
+        with patch('kreatures.Config', return_value=customConfig):
+            with patch('builtins.input', return_value='TestPlayer'):
+                with patch('builtins.print'):
+                    game = Kreatures()
+
+                    parent1, parent2 = game.environment.getEntities()[:2]
+                    game.createEntity()
+                    game.createChildEntity(parent1, parent2)
+
+        # Player, starter creatures, spawned creatures and children alike
+        assert game.playerCreature.log.maxlen == 7
+        for entity in game.environment.getEntities():
+            assert entity.log.maxlen == 7
+
+        # And the cap is actually enforced, not merely recorded
+        for i in range(20):
+            game.playerCreature.addLogEntry("Entry %d" % i)
+        assert len(game.playerCreature.log) == 7
+        assert "Entry 19" in game.playerCreature.log[-1]
 
     def test_empty_entity_list_handling(self):
         """Test that empty entity lists are handled gracefully"""

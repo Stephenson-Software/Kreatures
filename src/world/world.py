@@ -1,26 +1,26 @@
 # Copyright (c) 2022 Daniel McCoy Stephenson
 # Apache License 2.0
-from entity.livingEntity import LivingEntity
+from entity.livingEntity import LivingEntity, DEFAULT_LOG_MAX_SIZE
 import random
 
 
 # @author Daniel McCoy Stephenson
 # @since 2017
 class World(object):
-    def __init__(self):
+    def __init__(self, maxLogSize=DEFAULT_LOG_MAX_SIZE):
         self.entities = []
 
         # create ten creatures for the world to have to start with
-        self.Alison = LivingEntity("Alison")
-        self.Barry = LivingEntity("Barry")
-        self.Conrad = LivingEntity("Conrad")
-        self.Derrick = LivingEntity("Derrick")
-        self.Eric = LivingEntity("Eric")
-        self.Francis = LivingEntity("Francis")
-        self.Gary = LivingEntity("Gary")
-        self.Harry = LivingEntity("Harry")
-        self.Isabelle = LivingEntity("Isabelle")
-        self.Jasper = LivingEntity("Jasper")
+        self.Alison = LivingEntity("Alison", maxLogSize)
+        self.Barry = LivingEntity("Barry", maxLogSize)
+        self.Conrad = LivingEntity("Conrad", maxLogSize)
+        self.Derrick = LivingEntity("Derrick", maxLogSize)
+        self.Eric = LivingEntity("Eric", maxLogSize)
+        self.Francis = LivingEntity("Francis", maxLogSize)
+        self.Gary = LivingEntity("Gary", maxLogSize)
+        self.Harry = LivingEntity("Harry", maxLogSize)
+        self.Isabelle = LivingEntity("Isabelle", maxLogSize)
+        self.Jasper = LivingEntity("Jasper", maxLogSize)
 
         self.starterEntities = [
             self.Alison,
