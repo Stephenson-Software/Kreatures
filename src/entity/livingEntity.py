@@ -20,7 +20,8 @@ class LivingEntity(object):
         self.chanceToBefriend = 100 - self.chanceToFight
         self.health = random.randint(80, 120)  # Health between 80-120
         self.maxHealth = self.health  # Track maximum health for potential future use
-        self.maxLogSize = maxLogSize
+        # The deque's maxlen is the cap; storing it separately would recreate
+        # the very duplication this parameter exists to remove.
         self.log = deque(["%s was created." % self.name], maxlen=maxLogSize)
         self.friends = []
         self.stats = Stats()

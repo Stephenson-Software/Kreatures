@@ -9,7 +9,6 @@ import random
 class World(object):
     def __init__(self, maxLogSize=DEFAULT_LOG_MAX_SIZE):
         self.entities = []
-        self.maxLogSize = maxLogSize
 
         # create ten creatures for the world to have to start with
         self.Alison = LivingEntity("Alison", maxLogSize)
