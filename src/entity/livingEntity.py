@@ -1,6 +1,7 @@
 # Copyright (c) 2022 Daniel McCoy Stephenson
 # Apache License 2.0
 import random
+from collections import deque
 from flags.flags import Flags
 from stats.stats import Stats
 
@@ -44,8 +45,8 @@ class LivingEntity(object):
             return "befriend"
 
     def reproduce(self, kreature):
-        self.log.append("%s made a baby with %s!" % (self.name, kreature.name))
-        kreature.log.append("%s made a baby with %s!" % (kreature.name, self.name))
+        self.addLogEntry("%s made a baby with %s!" % (self.name, kreature.name))
+        kreature.addLogEntry("%s made a baby with %s!" % (kreature.name, self.name))
         self.stats.numOffspring += 1
         kreature.stats.numOffspring += 1
         # Return the parent entities so the child can be created with proper references
@@ -64,20 +65,20 @@ class LivingEntity(object):
                 
                 kreature.health -= damage
                 if kreature.health <= 0:
-                    self.log.append(
+                    self.addLogEntry(
                         "%s fought and ate %s!" % (self.name, kreature.name)
                     )
-                    kreature.log.append(
+                    kreature.addLogEntry(
                         "%s was eaten by %s!" % (kreature.name, self.name)
                     )
                     self.stats.numCreaturesEaten += 1
                     break
                 else:
-                    self.log.append(
+                    self.addLogEntry(
                         "%s fought %s and dealt %d damage!"
                         % (self.name, kreature.name, damage)
                     )
-                    kreature.log.append(
+                    kreature.addLogEntry(
                         "%s took %d damage from %s! Health: %d"
                         % (kreature.name, damage, self.name, kreature.health)
                     )
@@ -92,25 +93,25 @@ class LivingEntity(object):
                 
                 self.health -= damage
                 if self.health <= 0:
-                    kreature.log.append(
+                    kreature.addLogEntry(
                         "%s fought and ate %s!" % (kreature.name, self.name)
                     )
-                    self.log.append("%s was eaten by %s!" % (self.name, kreature.name))
+                    self.addLogEntry("%s was eaten by %s!" % (self.name, kreature.name))
                     kreature.stats.numCreaturesEaten += 1
                     break
                 else:
-                    kreature.log.append(
+                    kreature.addLogEntry(
                         "%s fought %s and dealt %d damage!"
                         % (kreature.name, self.name, damage)
                     )
-                    self.log.append(
+                    self.addLogEntry(
                         "%s took %d damage from %s! Health: %d"
                         % (self.name, damage, kreature.name, self.health)
                     )
 
     def befriend(self, kreature):
-        self.log.append("%s made friends with %s!" % (self.name, kreature.name))
-        kreature.log.append("%s made friends with %s!" % (kreature.name, self.name))
+        self.addLogEntry("%s made friends with %s!" % (self.name, kreature.name))
+        kreature.addLogEntry("%s made friends with %s!" % (kreature.name, self.name))
         self.friends.append(kreature)
         kreature.friends.append(
             self
@@ -159,7 +160,20 @@ class LivingEntity(object):
             self.health = min(self.health + regeneration, self.maxHealth)
             # Only log significant regeneration events to avoid spam
             if regeneration >= 2:
-                self.log.append(
+                self.addLogEntry(
                     "%s regenerated %d health! Health: %d/%d"
                     % (self.name, regeneration, self.health, self.maxHealth)
                 )
+
+    def addLogEntry(self, message, maxLogSize=50):
+        """Add a log entry and maintain log size limit.
+
+        Backed by a deque bounded to maxLogSize so repeated appends are O(1)
+        instead of copying up to maxLogSize elements on every call once the
+        cap is reached (this fires on nearly every action, every tick, for
+        every entity, so it's on the hot path this feature exists to keep
+        cheap).
+        """
+        if not isinstance(self.log, deque) or self.log.maxlen != maxLogSize:
+            self.log = deque(self.log, maxlen=maxLogSize)
+        self.log.append(message)

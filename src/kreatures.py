@@ -23,9 +23,12 @@ class Kreatures:
         self.config = Config()
         self.tick = 0
         
+        # Performance monitoring for dynamic entity limits
+        self.tickTimes = []  # Store recent tick times for lag detection
+        
         # Initialize player early-game protection
         self.playerCreature.damageReduction = self.config.playerDamageReduction
-        self.playerCreature.log.append("%s has early-game protection!" % self.playerCreature.name)
+        self.playerCreature.addLogEntry("%s has early-game protection!" % self.playerCreature.name)
 
     def _load_names(self):
         """Load names from configuration file"""
@@ -65,13 +68,13 @@ class Kreatures:
         for entity in self.environment.getEntities():
             target = self.environment.getRandomEntity()
 
-            if target == entity:
+            if target == entity or target is None:
                 continue
 
             decision = entity.getNextAction(target)
 
             if decision == "nothing":
-                entity.log.append(
+                entity.addLogEntry(
                     "%s had an argument with %s!" % (entity.name, target.name)
                 )
             elif decision == "love":
@@ -87,7 +90,7 @@ class Kreatures:
                     # During grace period, 85% chance to skip attacking the player
                     if (self.tick < self.config.earlyGameGracePeriod and 
                         random.randint(1, 100) <= 85):
-                        entity.log.append(
+                        entity.addLogEntry(
                             "%s decided not to attack %s." % (entity.name, target.name)
                         )
                         continue
@@ -105,9 +108,12 @@ class Kreatures:
                 entity.decreaseChanceToFight()
                 entity.befriend(target)
 
-        # Remove all entities that died this turn
-        for entity in entities_to_remove:
-            self.environment.removeEntity(entity)
+        # Remove all entities that died this turn in a single O(n) pass
+        # (avoids O(n) list.remove() per death, which is O(n*k) overall)
+        self.environment.removeEntities(entities_to_remove)
+
+        # Manage population to prevent lag
+        self.managePopulation()
 
     def updatePlayerProtection(self):
         """Update player protection based on current tick"""
@@ -115,7 +121,25 @@ class Kreatures:
             # Grace period has ended
             if hasattr(self.playerCreature, 'damageReduction') and self.playerCreature.damageReduction > 0:
                 self.playerCreature.damageReduction = 0
-                self.playerCreature.log.append("%s's protection has worn off!" % self.playerCreature.name)
+                self.playerCreature.addLogEntry("%s's protection has worn off!" % self.playerCreature.name)
+
+    def managePopulation(self):
+        """Manage entity population to prevent performance issues"""
+        current_count = self.environment.getNumEntities()
+        
+        # Check if we need to cull entities
+        cull_threshold = int(self.config.maxEntities * self.config.entityCullThreshold)
+        
+        if current_count > cull_threshold:
+            target_count = int(self.config.maxEntities * self.config.entityCullTarget)
+            removed_entities = self.environment.cullWeakestEntities(target_count, self.playerCreature)
+            
+            if removed_entities:
+                print(f"Population management: Removed {len(removed_entities)} weak entities (Population: {current_count} -> {self.environment.getNumEntities()})")
+
+    def canCreateNewEntity(self):
+        """Check if we can create a new entity without exceeding limits"""
+        return self.environment.getNumEntities() < self.config.maxEntities
 
     def regenerateAllEntities(self):
         """Regenerate health for all living entities"""
@@ -124,11 +148,20 @@ class Kreatures:
                 entity.regenerateHealth()
 
     def createEntity(self):
+        if not self.canCreateNewEntity():
+            return None
         newEntity = LivingEntity(self.names[random.randint(0, len(self.names) - 1)])
         self.environment.addEntity(newEntity)
+        return newEntity
 
     def createChildEntity(self, parent1, parent2):
         """Create a child entity with proper parent-child relationships"""
+        if not self.canCreateNewEntity():
+            # Population limit reached, no new child can be created
+            parent1.addLogEntry(f"{parent1.name} and {parent2.name} tried to have a child, but the world is too crowded!")
+            parent2.addLogEntry(f"{parent1.name} and {parent2.name} tried to have a child, but the world is too crowded!")
+            return None
+            
         childName = self.names[random.randint(0, len(self.names) - 1)]
         child = LivingEntity(childName)
 
@@ -147,8 +180,9 @@ class Kreatures:
         child.health = parentHealthAvg + random.randint(-10, 10)  # Add some variation
         child.maxHealth = child.health
 
-        child.log.append(
-            "%s is the child of %s and %s." % (childName, parent1.name, parent2.name)
+        child.addLogEntry(
+            "%s is the child of %s and %s." % (childName, parent1.name, parent2.name),
+            self.config.entityLogMaxSize
         )
 
         self.environment.addEntity(child)
@@ -209,6 +243,42 @@ class Kreatures:
 
         return False
 
+    def monitorPerformance(self, tick_duration):
+        """Monitor tick performance and adjust max entities dynamically"""
+        # Track recent tick times
+        self.tickTimes.append(tick_duration)
+        
+        # Keep only recent performance window
+        if len(self.tickTimes) > self.config.performanceWindow:
+            self.tickTimes = self.tickTimes[-self.config.performanceWindow:]
+        
+        # Only adjust after we have some data
+        if len(self.tickTimes) >= 5:
+            self.adjustMaxEntitiesBasedOnLag(self.getAverageTickTime())
+
+    def getAverageTickTime(self):
+        """Compute the average tick time over the tracked performance window"""
+        if not self.tickTimes:
+            return 0.0
+        return sum(self.tickTimes) / len(self.tickTimes)
+
+    def adjustMaxEntitiesBasedOnLag(self, avg_tick_time):
+        """Dynamically adjust max entities based on performance"""
+        current_max = self.config.maxEntities
+        
+        if avg_tick_time > self.config.lagThreshold:
+            # Performance is poor, reduce max entities
+            new_max = max(self.config.minEntities, int(current_max * 0.8))
+            if new_max != current_max:
+                self.config.maxEntities = new_max
+                print(f"Performance lag detected (avg: {avg_tick_time:.3f}s). Reducing max entities to {new_max}")
+        elif avg_tick_time < self.config.lagThreshold * 0.5:
+            # Performance is good, cautiously increase max entities
+            new_max = min(self.config.maxEntitiesLimit, int(current_max * 1.1))
+            if new_max != current_max and self.environment.getNumEntities() > current_max * 0.8:
+                self.config.maxEntities = new_max
+                print(f"Good performance (avg: {avg_tick_time:.3f}s). Increasing max entities to {new_max}")
+
     def printSummary(self):
         print("=== Summary ===")
         if self.playerCreature.chanceToFight > self.playerCreature.chanceToBefriend:
@@ -244,6 +314,11 @@ class Kreatures:
             print("%s died during the simulation." % self.playerCreature.name)
         print("Kreatures still alive: %d" % self.environment.getNumEntities())
         print("Simulation ran for %d ticks." % self.tick)
+        
+        # Show performance and dynamic entity limit info
+        if self.tickTimes:
+            print("Average tick time: %.4f seconds" % self.getAverageTickTime())
+        print("Final max entities limit: %d (started at 50)" % self.config.maxEntities)
 
     def printStats(self):
         print("=== Stats ===")
@@ -251,8 +326,18 @@ class Kreatures:
         print("Babies made: %d" % self.playerCreature.stats.numOffspring)
         print("Creatures Eaten: %d" % self.playerCreature.stats.numCreaturesEaten)
 
+    def placePlayerCreature(self):
+        """Put the player's creature at the front of the world's entity list.
+
+        The player is inserted rather than assigned over index 0: the world's
+        starter entities are all real creatures now that the "placeholder"
+        string is gone, so overwriting index 0 would silently delete the first
+        starter creature (Alison) from the world.
+        """
+        self.environment.entities.insert(0, self.playerCreature)
+
     def run(self):
-        self.environment.entities[0] = self.playerCreature
+        self.placePlayerCreature()
         print("")
 
         # code to run a day, then show any new additions to log
@@ -269,9 +354,19 @@ class Kreatures:
             except:  # if list is empty, just keep going
                 pass
 
+            # Monitor performance and run simulation tick
+            tick_start_time = time.time()
+            
             self.initiateEntityActions()
             self.updatePlayerProtection()  # Update player protection status
             self.regenerateAllEntities()  # Regenerate health for all entities
+            
+            tick_end_time = time.time()
+            tick_duration = tick_end_time - tick_start_time
+            
+            # Track performance and adjust entity limits dynamically
+            self.monitorPerformance(tick_duration)
+            
             time.sleep(self.config.tickLength)
             self.tick += 1
             if self.tick >= self.config.maxTicks:
