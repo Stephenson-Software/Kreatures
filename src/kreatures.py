@@ -326,8 +326,18 @@ class Kreatures:
         print("Babies made: %d" % self.playerCreature.stats.numOffspring)
         print("Creatures Eaten: %d" % self.playerCreature.stats.numCreaturesEaten)
 
+    def placePlayerCreature(self):
+        """Put the player's creature at the front of the world's entity list.
+
+        The player is inserted rather than assigned over index 0: the world's
+        starter entities are all real creatures now that the "placeholder"
+        string is gone, so overwriting index 0 would silently delete the first
+        starter creature (Alison) from the world.
+        """
+        self.environment.entities.insert(0, self.playerCreature)
+
     def run(self):
-        self.environment.entities[0] = self.playerCreature
+        self.placePlayerCreature()
         print("")
 
         # code to run a day, then show any new additions to log

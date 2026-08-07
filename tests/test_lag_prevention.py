@@ -212,3 +212,25 @@ class TestWorldInitializationFix:
             assert isinstance(entity, LivingEntity)
             assert hasattr(entity, 'name')
             assert hasattr(entity, 'health')
+
+    def test_player_creature_does_not_displace_a_starter_entity(self):
+        """Test that placing the player keeps every starter creature in the world
+
+        With the "placeholder" string removed from the starter entities, index 0
+        holds a real creature, so the player has to be inserted rather than
+        assigned over it.
+        """
+        from kreatures import Kreatures
+
+        with patch('builtins.input', return_value='TestPlayer'):
+            with patch('builtins.print'):
+                game = Kreatures()
+
+                starters = list(game.environment.getEntities())
+
+                game.placePlayerCreature()
+
+                # The player acts first, and no starter creature was dropped
+                assert game.environment.getEntities()[0] is game.playerCreature
+                assert game.environment.getEntities()[1:] == starters
+                assert game.environment.getNumEntities() == len(starters) + 1
