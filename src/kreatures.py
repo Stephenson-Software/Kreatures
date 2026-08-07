@@ -12,15 +12,19 @@ from config.config import Config
 # @author Daniel McCoy Stephenson
 class Kreatures:
     def __init__(self):
-        self.environment = World()
+        # Config comes first: every entity created from here on is given the
+        # configured log cap, so the setting applies to the whole world.
+        self.config = Config()
+        self.environment = World(self.config.entityLogMaxSize)
         self.names = self._load_names()
 
         print("What would you like to name your kreature?")
         self.creatureName = input("> ")
-        self.playerCreature = LivingEntity(self.creatureName)
+        self.playerCreature = LivingEntity(
+            self.creatureName, self.config.entityLogMaxSize
+        )
 
         self.running = True
-        self.config = Config()
         self.tick = 0
         
         # Performance monitoring for dynamic entity limits
@@ -150,7 +154,10 @@ class Kreatures:
     def createEntity(self):
         if not self.canCreateNewEntity():
             return None
-        newEntity = LivingEntity(self.names[random.randint(0, len(self.names) - 1)])
+        newEntity = LivingEntity(
+            self.names[random.randint(0, len(self.names) - 1)],
+            self.config.entityLogMaxSize,
+        )
         self.environment.addEntity(newEntity)
         return newEntity
 
@@ -163,7 +170,7 @@ class Kreatures:
             return None
             
         childName = self.names[random.randint(0, len(self.names) - 1)]
-        child = LivingEntity(childName)
+        child = LivingEntity(childName, self.config.entityLogMaxSize)
 
         # Set up parent-child relationships
         child.addParent(parent1)
@@ -181,8 +188,7 @@ class Kreatures:
         child.maxHealth = child.health
 
         child.addLogEntry(
-            "%s is the child of %s and %s." % (childName, parent1.name, parent2.name),
-            self.config.entityLogMaxSize
+            "%s is the child of %s and %s." % (childName, parent1.name, parent2.name)
         )
 
         self.environment.addEntity(child)
