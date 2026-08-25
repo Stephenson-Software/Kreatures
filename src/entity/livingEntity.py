@@ -35,20 +35,31 @@ class LivingEntity(object):
         else:
             return False
 
+    def isFriendsWith(self, kreature):
+        """Report whether this entity already counts kreature as a friend.
+
+        Friendship is matched by name rather than by identity, which is the
+        rule the action-selection branches have always used: a creature that
+        shares a friend's name is treated as that friend. Keeping the test in
+        one place means befriending and action selection cannot disagree about
+        who is already a friend.
+        """
+        for friend in self.friends:
+            if friend.name == kreature.name:
+                return True
+        return False
+
     def getNextAction(self, kreature):
         self.decision = random.randint(0, 100)
         if self.decision <= self.chanceToFight:  # if fight
-            for i in self.friends:
-                if i.name == kreature.name:
-                    return "nothing"  # if creature is a friend, don't fight
+            if self.isFriendsWith(kreature):
+                return "nothing"  # if creature is a friend, don't fight
             self.stats.numActionsTaken += 1
             return "fight"  # if search comes up empty, fight
         elif self.chanceToFight < self.decision:  # if befriend
-            for i in self.friends:
-                if i.name == kreature.name:
-                    self.stats.numActionsTaken += 1
-                    return "love"  # if creature is a friend, have a baby
             self.stats.numActionsTaken += 1
+            if self.isFriendsWith(kreature):
+                return "love"  # if creature is a friend, have a baby
             return "befriend"
 
     def reproduce(self, kreature):
@@ -117,6 +128,12 @@ class LivingEntity(object):
                     )
 
     def befriend(self, kreature):
+        # A friendship that either side already records is not a new one, so
+        # nothing is logged and neither counter moves. Without this guard a
+        # repeat call inflates numFriendshipsForged and leaves duplicate
+        # entries behind, which every later isFriendsWith scan has to walk.
+        if self.isFriendsWith(kreature) or kreature.isFriendsWith(self):
+            return
         self.addLogEntry("%s made friends with %s!" % (self.name, kreature.name))
         kreature.addLogEntry("%s made friends with %s!" % (kreature.name, self.name))
         self.friends.append(kreature)

@@ -310,13 +310,84 @@ class TestBefriend(unittest.TestCase):
         self.assertEqual(self.entity.log[-1], "Alison made friends with Barry!")
         self.assertEqual(self.other.log[-1], "Barry made friends with Alison!")
 
-    def test_befriending_the_same_entity_twice_duplicates_the_entry(self):
-        """Nothing guards against a repeat friendship today."""
+    def test_befriending_the_same_entity_twice_is_a_no_op(self):
+        """A repeat friendship is neither recorded twice nor counted twice."""
         self.entity.befriend(self.other)
         self.entity.befriend(self.other)
 
-        self.assertEqual(self.entity.friends.count(self.other), 2)
+        self.assertEqual(self.entity.friends.count(self.other), 1)
+        self.assertEqual(self.other.friends.count(self.entity), 1)
+        self.assertEqual(self.entity.stats.numFriendshipsForged, 1)
+        self.assertEqual(self.other.stats.numFriendshipsForged, 1)
+
+    def test_a_repeat_friendship_is_not_logged_again(self):
+        self.entity.befriend(self.other)
+        logLengthAfterFirstCall = len(self.entity.log)
+
+        self.entity.befriend(self.other)
+
+        self.assertEqual(len(self.entity.log), logLengthAfterFirstCall)
+        self.assertEqual(len(self.other.log), logLengthAfterFirstCall)
+
+    def test_a_friendship_recorded_on_only_the_other_side_is_not_re_forged(self):
+        """befriend is reached through the target's decision as well as the
+        actor's, so the guard has to consult both friend lists."""
+        self.other.friends.append(self.entity)
+
+        self.entity.befriend(self.other)
+
+        self.assertEqual(self.other.friends.count(self.entity), 1)
+        self.assertEqual(self.entity.friends, [])
+        self.assertEqual(self.entity.stats.numFriendshipsForged, 0)
+        self.assertEqual(self.other.stats.numFriendshipsForged, 0)
+
+    def test_a_namesake_of_an_existing_friend_is_not_befriended_again(self):
+        """The guard matches by name, the same rule getNextAction applies."""
+        self.entity.befriend(self.other)
+        namesake = LivingEntity("Barry")
+
+        self.entity.befriend(namesake)
+
+        self.assertNotIn(namesake, self.entity.friends)
+        self.assertEqual(self.entity.stats.numFriendshipsForged, 1)
+
+    def test_a_stranger_is_still_befriended_after_an_existing_friendship(self):
+        self.entity.befriend(self.other)
+        stranger = LivingEntity("Carol")
+
+        self.entity.befriend(stranger)
+
+        self.assertIn(stranger, self.entity.friends)
         self.assertEqual(self.entity.stats.numFriendshipsForged, 2)
+
+
+class TestIsFriendsWith(unittest.TestCase):
+    """isFriendsWith is the single membership test shared by befriend and
+    getNextAction."""
+
+    def setUp(self):
+        self.entity = LivingEntity("Alison")
+        self.other = LivingEntity("Barry")
+
+    def test_a_stranger_is_not_a_friend(self):
+        self.assertFalse(self.entity.isFriendsWith(self.other))
+
+    def test_an_entity_in_the_friend_list_is_a_friend(self):
+        self.entity.friends.append(self.other)
+
+        self.assertTrue(self.entity.isFriendsWith(self.other))
+
+    def test_a_namesake_of_a_friend_is_reported_as_a_friend(self):
+        self.entity.friends.append(self.other)
+        namesake = LivingEntity("Barry")
+
+        self.assertIsNot(namesake, self.other)
+        self.assertTrue(self.entity.isFriendsWith(namesake))
+
+    def test_the_test_is_one_directional(self):
+        self.entity.friends.append(self.other)
+
+        self.assertFalse(self.other.isFriendsWith(self.entity))
 
 
 class TestBehaviouralChanceAdjustments(unittest.TestCase):
