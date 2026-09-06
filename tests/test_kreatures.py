@@ -239,6 +239,10 @@ class TestContinueAsChildAccepted(KreaturesTestCase):
         self.assertTrue(self.game.continueAsChild())
         self.assertIs(self.game.playerCreature, living)
         self.assertEqual(mock_input.call_count, 1)
+        self.assertTrue(
+            any("has 1 living children" in line for line in printedLines(mock_print)),
+            "the count announced to the player should reflect the filter",
+        )
 
 
 class TestPrintSummary(KreaturesTestCase):
@@ -303,12 +307,13 @@ class TestPrintSummary(KreaturesTestCase):
             self.assertNotIn("ended with", line)
 
     def test_the_surviving_population_and_tick_count_are_reported(self):
+        """The world's ten starter creatures are the whole population here:
+        the player's creature only joins the world in placePlayerCreature,
+        which the summary does not call."""
         self.game.tick = 17
         lines = self.summaryLines()
 
-        self.assertIn(
-            "Kreatures still alive: %d" % self.game.environment.getNumEntities(), lines
-        )
+        self.assertIn("Kreatures still alive: 10", lines)
         self.assertIn("Simulation ran for 17 ticks.", lines)
 
     def test_average_tick_time_is_reported_only_once_ticks_were_timed(self):
