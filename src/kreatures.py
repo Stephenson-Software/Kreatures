@@ -349,14 +349,17 @@ class Kreatures:
         # code to run a day, then show any new additions to log
         while self.running:
             try:
-                print(self.playerCreature.log[0])  # tries to print log entry
-                if (
-                    "eaten" in self.playerCreature.log[0]
-                ):  # if creature was eaten, check for children
+                # Hold on to the creature whose entry is printed: a successful
+                # succession in continueAsChild reassigns self.playerCreature,
+                # and the entry deleted below must come from the creature it
+                # was printed from, not from the child the player moved on to.
+                creature = self.playerCreature
+                print(creature.log[0])  # tries to print log entry
+                if "eaten" in creature.log[0]:  # if eaten, check for children
                     if not self.continueAsChild():
                         self.running = False
                         break
-                del self.playerCreature.log[0]  # tries to delete log entry
+                del creature.log[0]  # tries to delete log entry
             except:  # if list is empty, just keep going
                 pass
 

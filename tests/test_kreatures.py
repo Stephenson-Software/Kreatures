@@ -377,5 +377,62 @@ class TestPrintStats(KreaturesTestCase):
         self.assertIn("Babies made: 9", printedLines(mock_print))
 
 
+class TestRun(KreaturesTestCase):
+    """Characterize the log handling at the top of the main loop.
+
+    Each game is held to a single tick and the tick delay is stubbed out, so
+    the loop body executes exactly once before the maximum-ticks exit. The
+    answers handed to input cover the succession prompt (when one is shown)
+    and the final [CONTINUE] prompt, in that order.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.game.config.maxTicks = 1
+
+    def runGame(self, answers):
+        with patch("builtins.print"), patch("time.sleep"), patch(
+            "builtins.input", side_effect=answers
+        ):
+            self.game.run()
+
+    def setLog(self, entity, entries):
+        entity.log.clear()
+        for entry in entries:
+            entity.log.append(entry)
+
+    def test_the_printed_entry_is_deleted_from_the_player_creature(self):
+        self.setLog(self.game.playerCreature, ["first entry", "second entry"])
+
+        self.runGame([""])
+
+        self.assertEqual(self.game.playerCreature.log[0], "second entry")
+
+    def test_succession_deletes_the_eaten_entry_from_the_dead_creature(self):
+        """The entry printed before the succession prompt belongs to the dead
+        creature, so that is the log it is deleted from."""
+        dead = self.game.playerCreature
+        dead.health = 0
+        self.setLog(dead, ["TestPlayer was eaten by Alison!"])
+        self.addChildToWorld("Barry")
+
+        self.runGame(["y", ""])
+
+        self.assertNotIn("TestPlayer was eaten by Alison!", dead.log)
+
+    def test_succession_keeps_the_child_s_oldest_entry(self):
+        """Regression test for #53: the child the player continues as must not
+        lose its oldest entry, which is the one that introduces it."""
+        dead = self.game.playerCreature
+        dead.health = 0
+        self.setLog(dead, ["TestPlayer was eaten by Alison!"])
+        child = self.addChildToWorld("Barry")
+
+        self.runGame(["y", ""])
+
+        self.assertIs(self.game.playerCreature, child)
+        self.assertEqual(child.log[0], "Barry was created.")
+
+
 if __name__ == "__main__":
     unittest.main()
