@@ -18,5 +18,20 @@ You're able to create a creature and release it into an environment where it can
 - Show creatures alive at all times
 - Make inputted names possible baby names using a txt file
 
+## Usage reporting
+Kreatures sends one anonymous `startup` event per launch (the program name and the version from `version.txt`, nothing else) to [trace](https://github.com/Stephenson-Software/trace) at `https://trace.danielstephenson.dev`, so it is known how often the game is actually run. No username, hostname, creature name or anything else about the machine or the player is included, and the report is made off the main thread and can never stop or slow the game.
+
+Reporting is on by default. The first launch prints a one-line notice and writes `src/config/settings.json`; to turn it off, set:
+
+```json
+{
+  "usage_reporting": {
+    "enabled": false
+  }
+}
+```
+
+The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The file is git-ignored. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python).
+
 ## Interakt & Apex
 The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/Stephenson-Software/Interakt) and [Apex](https://github.com/Stephenson-Software/Apex) projects.
