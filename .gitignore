@@ -4,3 +4,5 @@ cov.xml
 __pycache__/
 *.py[cod]
 *$py.class
+# written on first launch by src/usage_reporting.py; holds the usage-reporting opt-out
+src/config/settings.json

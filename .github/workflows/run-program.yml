@@ -109,6 +109,13 @@ jobs:
         echo "This demo will create a creature named 'GitHubRunner' and simulate its life."
         echo ""
     
+    - name: Opt the demo run out of usage reporting
+      # A CI demo is not a person playing: without this the first-run path
+      # in src/usage_reporting.py would report a startup event to the real
+      # trace service on every push.
+      run: |
+        echo '{"usage_reporting": {"enabled": false}}' > src/config/settings.json
+
     - name: Run Kreatures program with automation
       run: |
         echo "🎮 Running simulation..."

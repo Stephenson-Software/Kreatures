@@ -7,6 +7,7 @@ import time
 from world.world import World
 from entity.livingEntity import LivingEntity
 from config.config import Config
+from usage_reporting import startUsageReporting
 
 
 # @author Daniel McCoy Stephenson
@@ -390,5 +391,8 @@ class Kreatures:
 
 
 if __name__ == "__main__":
+    # Reported before the name prompt so a launch counts even if the player
+    # quits there; the client never raises and never blocks the game loop.
+    startUsageReporting()
     kreatures = Kreatures()
     kreatures.run()
