@@ -7,12 +7,19 @@ defaults), so the ``usage_reporting`` block lives in ``config/settings.json``
 next to ``names.json``, the one configuration file the project already reads.
 The file is created on the first launch after this was added, together with a
 single printed notice saying that reporting is on and how to turn it off.
+
+Two environment variables every trace client honours also turn it off:
+``TRACE_USAGE_REPORTING=off`` and ``DO_NOT_TRACK=1``. The client checks them
+in its constructor, before the settings block, so they win even when the
+block says on - and a first launch with either set writes nothing and says
+nothing, so the notice is still waiting for the first launch that reports.
+Details: https://github.com/Stephenson-Software/trace#usage-reporting
 """
 import atexit
 import json
 import os
 
-from trace_client import TraceClient
+from trace_client import TraceClient, environment_opts_out
 
 # @author Daniel McCoy Stephenson
 # @since September 11th, 2026
@@ -26,10 +33,13 @@ _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(_SRC_DIR, "config", "settings.json")
 VERSION_FILE = os.path.join(_SRC_DIR, "..", "version.txt")
 
+DETAILS_URL = "https://github.com/Stephenson-Software/trace#usage-reporting"
+
 FIRST_RUN_NOTICE = (
     "Usage reporting is on: Kreatures sends a startup event (program name and "
     "version only) to trace.danielstephenson.dev. "
-    'Turn it off with "usage_reporting": {"enabled": false} in src/config/settings.json.'
+    'Turn it off with "usage_reporting": {"enabled": false} in src/config/settings.json '
+    "or TRACE_USAGE_REPORTING=off in the environment. Details: " + DETAILS_URL
 )
 
 
@@ -75,6 +85,12 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
     if isinstance(section, dict):
         return section
 
+    if environment_opts_out():
+        # Nothing will be sent this run, so saying "reporting is on" would be
+        # wrong and writing the block would silence the notice for good. The
+        # defaults are returned unwritten; the client sees the environment.
+        return defaultSettings()
+
     settings[SETTINGS_SECTION] = defaultSettings()
     log(FIRST_RUN_NOTICE)
     try:
@@ -90,7 +106,10 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
 
 
 def buildClient(section):
-    """A TraceClient for the given usage_reporting settings; disabled when they are None or opted out."""
+    """A TraceClient for the given usage_reporting settings; disabled when
+    they are None or opted out. Always built through the client's constructor,
+    which puts TRACE_USAGE_REPORTING / DO_NOT_TRACK ahead of the settings and
+    records why it is off in ``disabled_reason``."""
     if section is None:
         return TraceClient.disabled()
     enabled = section.get("enabled", True)
