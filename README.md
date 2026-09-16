@@ -19,9 +19,13 @@ You're able to create a creature and release it into an environment where it can
 - Make inputted names possible baby names using a txt file
 
 ## Usage reporting
-Kreatures sends one anonymous `startup` event per launch (the program name and the version from `version.txt`, nothing else) to [trace](https://github.com/Stephenson-Software/trace) at `https://trace.danielstephenson.dev`, so it is known how often the game is actually run. No username, hostname, creature name or anything else about the machine or the player is included, and the report is made off the main thread and can never stop or slow the game.
+Usage reporting is on by default: Kreatures sends one `startup` event per launch to [trace](https://github.com/Stephenson-Software/trace) at `https://trace.danielstephenson.dev`, carrying only the program name and the version from `version.txt`. Nothing about you or your machine is sent — no username, hostname, IP address, creature name or anything typed into the game. The report is made off the main thread and can never stop or slow the game.
 
-Reporting is on by default. The first launch prints a one-line notice and writes `src/config/settings.json`; to turn it off, set:
+The first launch prints a one-line notice and writes `src/config/settings.json` (git-ignored). To turn reporting off, any one of these will do:
+
+- `src/config/settings.json` → `"usage_reporting": {"enabled": false}` — Kreatures' own switch
+- `TRACE_USAGE_REPORTING=off` (also `false`, `0`, `no`) in the environment — turns off every program that reports to trace
+- `DO_NOT_TRACK=1` (also `true`, `yes`) in the environment — the [console DNT convention](https://consoledonottrack.com), honoured the same way
 
 ```json
 {
@@ -31,7 +35,9 @@ Reporting is on by default. The first launch prints a one-line notice and writes
 }
 ```
 
-The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The file is git-ignored. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python).
+The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.2.0).
+
+Details: https://github.com/Stephenson-Software/trace#usage-reporting
 
 ## Interakt & Apex
 The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/Stephenson-Software/Interakt) and [Apex](https://github.com/Stephenson-Software/Apex) projects.

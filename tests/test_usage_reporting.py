@@ -10,6 +10,7 @@ import tempfile
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from unittest import mock
 
 # Add src to path to import modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -54,8 +55,17 @@ def stubServer(requests, arrived):
     return server
 
 
+_ENV_VARS = ("TRACE_USAGE_REPORTING", "DO_NOT_TRACK")
+
+
 class UsageReportingTestCase(unittest.TestCase):
     def setUp(self):
+        # The machine running the tests may itself have opted out through
+        # the client-wide variables; every test starts from a clean slate.
+        scrubbed = {k: v for k, v in os.environ.items() if k not in _ENV_VARS}
+        patcher = mock.patch.dict(os.environ, scrubbed, clear=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.tempDir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempDir.cleanup)
         self.settingsFile = os.path.join(self.tempDir.name, "settings.json")
@@ -90,12 +100,32 @@ class TestSettings(UsageReportingTestCase):
         self.assertEqual(section, secondRun)
         self.assertEqual([], self.logged, "the notice must not be shown twice")
 
-    def test_notice_names_the_program_the_service_and_the_opt_out(self):
+    def test_notice_names_the_program_the_service_the_opt_outs_and_the_details(self):
         self.assertIn("Kreatures sends a startup event", FIRST_RUN_NOTICE)
         self.assertIn("program name and version only", FIRST_RUN_NOTICE)
         self.assertIn("trace.danielstephenson.dev", FIRST_RUN_NOTICE)
         self.assertIn('"usage_reporting": {"enabled": false}', FIRST_RUN_NOTICE)
         self.assertIn("src/config/settings.json", FIRST_RUN_NOTICE)
+        self.assertIn("TRACE_USAGE_REPORTING=off", FIRST_RUN_NOTICE)
+        self.assertIn(
+            "https://github.com/Stephenson-Software/trace#usage-reporting",
+            FIRST_RUN_NOTICE,
+        )
+        self.assertNotIn("\n", FIRST_RUN_NOTICE)
+
+    def test_a_first_run_under_do_not_track_writes_nothing_and_says_nothing(self):
+        with mock.patch.dict(os.environ, {"DO_NOT_TRACK": "1"}):
+            section = loadSettings(self.settingsFile, self.log)
+
+        self.assertEqual(usage_reporting.defaultSettings(), section)
+        self.assertEqual([], self.logged)
+        self.assertFalse(os.path.exists(self.settingsFile))
+
+        # The next launch without the variable is the real first run.
+        section = loadSettings(self.settingsFile, self.log)
+
+        self.assertEqual([FIRST_RUN_NOTICE], self.logged)
+        self.assertEqual({"usage_reporting": section}, self.readSettingsFile())
 
     def test_settings_file_lives_in_the_config_directory(self):
         self.assertEqual("settings.json", os.path.basename(SETTINGS_FILE))
@@ -154,12 +184,30 @@ class TestSettings(UsageReportingTestCase):
         self.assertIn("shown again next time", self.logged[1])
 
 
-class TestBuildClient(unittest.TestCase):
+class TestBuildClient(UsageReportingTestCase):
     def test_none_settings_give_a_disabled_client(self):
         self.assertFalse(buildClient(None).enabled)
 
     def test_opt_out_gives_a_disabled_client(self):
-        self.assertFalse(buildClient({"enabled": False}).enabled)
+        client = buildClient({"enabled": False})
+
+        self.assertFalse(client.enabled)
+        self.assertEqual("config", client.disabled_reason)
+
+    def test_the_environment_wins_over_settings_saying_on(self):
+        for variable, value in (
+            ("TRACE_USAGE_REPORTING", "off"),
+            ("TRACE_USAGE_REPORTING", "FALSE"),
+            ("TRACE_USAGE_REPORTING", "0"),
+            ("DO_NOT_TRACK", "1"),
+            ("DO_NOT_TRACK", "true"),
+        ):
+            with self.subTest(variable=variable, value=value):
+                with mock.patch.dict(os.environ, {variable: value}):
+                    client = buildClient({"enabled": True, "key": "k"})
+
+                self.assertFalse(client.enabled)
+                self.assertEqual("environment", client.disabled_reason)
 
     def test_defaults_give_an_enabled_client(self):
         client = buildClient({"enabled": True})
@@ -242,6 +290,40 @@ class TestStartup(UsageReportingTestCase):
         client = startUsageReporting(self.settingsFile, self.log)
 
         self.assertFalse(client.enabled)
+        self.assertFalse(self.arrived.wait(0.5))
+        self.assertEqual([], self.requests)
+
+    def test_do_not_track_sends_nothing_even_when_the_settings_say_on(self):
+        self.writeSettingsFile(
+            {
+                "usage_reporting": {
+                    "enabled": True,
+                    "endpoint": self.endpoint,
+                    "key": "test-key",
+                }
+            }
+        )
+
+        with mock.patch.dict(os.environ, {"DO_NOT_TRACK": "1"}):
+            client = startUsageReporting(self.settingsFile, self.log)
+
+        self.assertFalse(client.enabled)
+        self.assertEqual("environment", client.disabled_reason)
+        self.assertFalse(self.arrived.wait(0.5))
+        self.assertEqual([], self.requests)
+        self.assertEqual([], self.logged)
+
+    def test_trace_usage_reporting_off_sends_nothing_on_a_first_run(self):
+        original = usage_reporting.DEFAULT_ENDPOINT
+        usage_reporting.DEFAULT_ENDPOINT = self.endpoint
+        self.addCleanup(setattr, usage_reporting, "DEFAULT_ENDPOINT", original)
+
+        with mock.patch.dict(os.environ, {"TRACE_USAGE_REPORTING": "off"}):
+            client = startUsageReporting(self.settingsFile, self.log)
+
+        self.assertFalse(client.enabled)
+        self.assertEqual([], self.logged)
+        self.assertFalse(os.path.exists(self.settingsFile))
         self.assertFalse(self.arrived.wait(0.5))
         self.assertEqual([], self.requests)
 
