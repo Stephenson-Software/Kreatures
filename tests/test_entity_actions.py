@@ -5,7 +5,7 @@
 Each tick every creature in the world picks a random target and acts on the
 decision getNextAction returns. These tests pin down what each of the four
 decisions does to the actor, the target and the world, plus the rules that
-keep a creature from acting at all. Decisions and targets are scripted so
+keep a creature from acting at all, or from being acted on once eaten. Decisions and targets are scripted so
 every branch is exercised deterministically. Every assertion describes what
 the code does today, so a failure means behavior changed rather than that
 the game is wrong.
@@ -255,10 +255,10 @@ class TestFightDecision(EntityActionsTestCase):
         self.assertEqual(self.game.environment.entities, [target])
         self.assertEqual(target.stats.numCreaturesEaten, 1)
 
-    def test_a_creature_eaten_earlier_in_the_tick_still_takes_its_turn(self):
-        """Deaths are only applied once every creature has acted, so a
-        creature eaten earlier in the same tick still acts on its own turn
-        — here it forges a friendship — before it is removed."""
+    def test_a_creature_eaten_earlier_in_the_tick_does_not_take_its_turn(self):
+        """Deaths are only applied once every creature has acted, but a
+        creature eaten earlier in the same tick is skipped on its own turn
+        rather than acting before it is removed."""
         eater = scriptedEntity("Alison", "fight")
         eaten = scriptedEntity("Barry", "befriend", health=1)
         bystander = scriptedEntity("Conrad", "nothing")
@@ -267,8 +267,23 @@ class TestFightDecision(EntityActionsTestCase):
 
         self.runTick()
 
-        eaten.getNextAction.assert_called_once_with(bystander)
-        self.assertEqual(bystander.friends, [eaten])
+        eaten.getNextAction.assert_not_called()
+        self.assertEqual(bystander.friends, [])
+        self.assertEqual(self.game.environment.entities, [eater, bystander])
+
+    def test_a_creature_eaten_earlier_in_the_tick_cannot_be_a_target(self):
+        """A creature that draws one eaten earlier in the same tick does not
+        act on it — here it would otherwise befriend it."""
+        eater = scriptedEntity("Alison", "fight")
+        eaten = scriptedEntity("Barry", "nothing", health=1)
+        bystander = scriptedEntity("Conrad", "befriend")
+        self.populate(eater, eaten, bystander)
+        self.scriptTargets(eaten, eaten, eaten)
+
+        self.runTick()
+
+        bystander.getNextAction.assert_not_called()
+        self.assertEqual(bystander.friends, [])
         self.assertEqual(self.game.environment.entities, [eater, bystander])
 
 

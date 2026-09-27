@@ -71,9 +71,14 @@ class Kreatures:
         entities_to_remove = []  # Track entities that die this turn
 
         for entity in self.environment.getEntities():
+            # A creature eaten earlier this tick is only removed once the
+            # tick ends, so it must not act in the meantime
+            if not entity.isAlive():
+                continue
+
             target = self.environment.getRandomEntity()
 
-            if target == entity or target is None:
+            if target == entity or target is None or not target.isAlive():
                 continue
 
             decision = entity.getNextAction(target)
