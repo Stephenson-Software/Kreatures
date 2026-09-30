@@ -237,6 +237,13 @@ class TestVersion(unittest.TestCase):
     def test_a_missing_version_file_gives_none(self):
         self.assertIsNone(readVersion("/nonexistent/version.txt"))
 
+    def test_a_missing_version_file_still_builds_a_client(self):
+        with mock.patch.object(usage_reporting, "readVersion", return_value=None):
+            self.assertEqual("unknown", usage_reporting.programVersion())
+            client = buildClient({"enabled": True, "key": "k"})
+        self.assertTrue(client.enabled)
+        client.close()
+
 
 class TestStartup(UsageReportingTestCase):
     def setUp(self):

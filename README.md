@@ -35,7 +35,7 @@ The first launch prints a one-line notice and writes `src/config/settings.json` 
 }
 ```
 
-The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.2.0).
+The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.3.0).
 
 Details: https://github.com/Stephenson-Software/trace#usage-reporting
 

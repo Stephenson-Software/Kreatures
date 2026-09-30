@@ -58,6 +58,12 @@ def readVersion(versionFile=VERSION_FILE):
         return None
 
 
+def programVersion():
+    """The version every event is tagged with: version.txt's, or "unknown"
+    when it cannot be read, so a missing file never stops startup."""
+    return readVersion() or "unknown"
+
+
 def loadSettings(settingsFile=SETTINGS_FILE, log=print):
     """Read the usage_reporting block from the settings file, writing the
     default block (and printing the one-time notice) when the file does not
@@ -116,7 +122,9 @@ def buildClient(section):
     endpoint = section.get("endpoint") or DEFAULT_ENDPOINT
     key = section.get("key") or DEFAULT_KEY
     try:
-        return TraceClient(endpoint, APPLICATION, key=key, enabled=bool(enabled))
+        return TraceClient(
+            endpoint, APPLICATION, programVersion(), key=key, enabled=bool(enabled)
+        )
     except Exception:
         return TraceClient.disabled()
 
@@ -131,7 +139,6 @@ def startUsageReporting(settingsFile=SETTINGS_FILE, log=print):
         client = buildClient(loadSettings(settingsFile, log))
     except Exception:
         return TraceClient.disabled()
-    version = readVersion()
-    client.report("startup", tags={"version": version} if version else None)
+    client.report("startup")
     atexit.register(client.close)
     return client
