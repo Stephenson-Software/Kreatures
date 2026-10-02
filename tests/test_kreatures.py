@@ -4,7 +4,8 @@
 
 These cover the four methods the player meets when their creature dies and
 the simulation wraps up: getLivingChildren, continueAsChild, printSummary and
-printStats. Every assertion here describes what the code does today, so a
+printStats. They also cover the main loop in run and the tick timing that
+monitorPerformance feeds into the dynamic entity limit. Every assertion here describes what the code does today, so a
 failure means behavior changed rather than that the game is wrong.
 """
 import sys
@@ -391,10 +392,11 @@ class TestRun(KreaturesTestCase):
         self.game.config.maxTicks = 1
 
     def runGame(self, answers):
-        with patch("builtins.print"), patch("time.sleep"), patch(
+        with patch("builtins.print") as mock_print, patch("time.sleep"), patch(
             "builtins.input", side_effect=answers
         ):
             self.game.run()
+        return printedLines(mock_print)
 
     def setLog(self, entity, entries):
         entity.log.clear()
@@ -432,6 +434,79 @@ class TestRun(KreaturesTestCase):
 
         self.assertIs(self.game.playerCreature, child)
         self.assertEqual(child.log[0], "Barry was created.")
+
+    def test_being_eaten_with_no_living_children_ends_the_game_at_once(self):
+        """With no child to continue as, the loop breaks before the tick runs:
+        the eaten entry stays in the log, the tick counter never advances and
+        the maximum-ticks message is not shown, but the player still reaches
+        the [CONTINUE] prompt and the summary."""
+        dead = self.game.playerCreature
+        dead.health = 0
+        self.setLog(dead, ["TestPlayer was eaten by Alison!"])
+        self.game.config.maxTicks = 5
+
+        lines = self.runGame([""])
+
+        self.assertFalse(self.game.running)
+        self.assertEqual(self.game.tick, 0)
+        self.assertEqual(list(dead.log), ["TestPlayer was eaten by Alison!"])
+        self.assertNotIn("Maximum iterations reached.", lines)
+        self.assertIn("=== Summary ===", lines)
+        self.assertIn("TestPlayer died during the simulation.", lines)
+
+    def test_an_empty_log_is_skipped_and_the_tick_still_runs(self):
+        """Printing from an empty log raises, and the bare except in run()
+        swallows it so the simulation carries on to the tick."""
+        self.setLog(self.game.playerCreature, [])
+
+        lines = self.runGame([""])
+
+        self.assertEqual(self.game.tick, 1)
+        self.assertIn("Maximum iterations reached.", lines)
+        self.assertIn("=== Summary ===", lines)
+
+
+class TestMonitorPerformance(KreaturesTestCase):
+    """Characterize how tick timings feed the dynamic entity limit.
+
+    The default config starts at 50 max entities with a 0.05 second lag
+    threshold, so a laggy run reduces the limit by 20% per adjustment.
+    """
+
+    def monitor(self, durations):
+        with patch("builtins.print"):
+            for duration in durations:
+                self.game.monitorPerformance(duration)
+
+    def test_the_fifth_sample_is_the_first_to_trigger_an_adjustment(self):
+        self.monitor([0.1] * 4)
+        self.assertEqual(self.game.config.maxEntities, 50)
+
+        self.monitor([0.1])
+
+        self.assertEqual(self.game.config.maxEntities, 40)
+
+    def test_every_sample_after_the_fifth_adjusts_again(self):
+        self.monitor([0.1] * 6)
+
+        self.assertEqual(self.game.config.maxEntities, 32)
+
+    def test_the_window_average_not_the_latest_sample_drives_the_adjustment(self):
+        """A single slow tick averaged with fast ones lands at 0.04 seconds:
+        under the lag threshold, yet above the half-threshold at which the
+        limit would grow, so the limit is left alone."""
+        self.monitor([0.0, 0.0, 0.0, 0.0, 0.2])
+
+        self.assertEqual(self.game.config.maxEntities, 50)
+
+    def test_the_average_of_no_ticks_is_zero(self):
+        self.assertEqual(self.game.tickTimes, [])
+        self.assertEqual(self.game.getAverageTickTime(), 0.0)
+
+    def test_the_average_covers_every_tracked_tick(self):
+        self.game.tickTimes = [0.01, 0.02, 0.06]
+
+        self.assertAlmostEqual(self.game.getAverageTickTime(), 0.03)
 
 
 if __name__ == "__main__":
