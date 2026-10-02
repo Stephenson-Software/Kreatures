@@ -6,3 +6,8 @@ __pycache__/
 *$py.class
 # written on first launch by src/usage_reporting.py; holds the usage-reporting opt-out
 src/config/settings.json
+
+# Browser build output (web/build_zip.py)
+web/index.html
+web/game.zip
+web/version.txt
