@@ -41,3 +41,12 @@ Details: https://github.com/Stephenson-Software/trace#usage-reporting
 
 ## Interakt & Apex
 The ideas in this project are generalized and expanded upon in the [Interakt](https://github.com/Stephenson-Software/Interakt) and [Apex](https://github.com/Stephenson-Software/Apex) projects.
+
+## Play in your browser
+The same game, unmodified, runs in a browser tab under [tak](https://github.com/Stephenson-Software/tak)'s console runtime (Python via Pyodide): https://kreatures.play.danielstephenson.dev, listed with the rest at [danielstephenson.dev/play](https://danielstephenson.dev/play). To build and serve it locally (needs `tak` installed):
+```
+python3 web/build_zip.py
+python3 -c "from tak.web.serve import main; main(root='.', title='Kreatures')"
+```
+Pushes to `master` deploy it to [arcade](https://github.com/Stephenson-Software/arcade) (`.github/workflows/browser.yml`).
+
