@@ -23,6 +23,7 @@ from usage_reporting import (  # noqa: E402
     FIRST_RUN_NOTICE,
     SETTINGS_FILE,
     buildClient,
+    installIdFile,
     loadSettings,
     readVersion,
     startUsageReporting,
@@ -55,19 +56,23 @@ def stubServer(requests, arrived):
     return server
 
 
-_ENV_VARS = ("TRACE_USAGE_REPORTING", "DO_NOT_TRACK")
+_ENV_VARS = ("TRACE_USAGE_REPORTING", "DO_NOT_TRACK", "TRACE_INSTALL_ID")
 
 
 class UsageReportingTestCase(unittest.TestCase):
     def setUp(self):
         # The machine running the tests may itself have opted out through
         # the client-wide variables; every test starts from a clean slate.
+        self.tempDir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempDir.cleanup)
         scrubbed = {k: v for k, v in os.environ.items() if k not in _ENV_VARS}
+        # An enabled client keeps its installation ID under the user data
+        # dir; every candidate for that dir points into the temp dir.
+        for variable in ("HOME", "USERPROFILE", "APPDATA", "XDG_DATA_HOME"):
+            scrubbed[variable] = os.path.join(self.tempDir.name, "userdata")
         patcher = mock.patch.dict(os.environ, scrubbed, clear=True)
         patcher.start()
         self.addCleanup(patcher.stop)
-        self.tempDir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempDir.cleanup)
         self.settingsFile = os.path.join(self.tempDir.name, "settings.json")
         self.logged = []
 
@@ -102,7 +107,7 @@ class TestSettings(UsageReportingTestCase):
 
     def test_notice_names_the_program_the_service_the_opt_outs_and_the_details(self):
         self.assertIn("Kreatures sends a startup event", FIRST_RUN_NOTICE)
-        self.assertIn("program name and version only", FIRST_RUN_NOTICE)
+        self.assertIn("random installation ID", FIRST_RUN_NOTICE)
         self.assertIn("trace.danielstephenson.dev", FIRST_RUN_NOTICE)
         self.assertIn('"usage_reporting": {"enabled": false}', FIRST_RUN_NOTICE)
         self.assertIn("src/config/settings.json", FIRST_RUN_NOTICE)
@@ -228,7 +233,7 @@ class TestBuildClient(UsageReportingTestCase):
         self.assertEqual("Kreatures", APPLICATION)
 
 
-class TestVersion(unittest.TestCase):
+class TestVersion(UsageReportingTestCase):
     def test_version_comes_from_version_txt_at_the_repository_root(self):
         expected = os.path.join(os.path.dirname(__file__), "..", "version.txt")
         with open(expected, "r") as f:
@@ -236,6 +241,39 @@ class TestVersion(unittest.TestCase):
 
     def test_a_missing_version_file_gives_none(self):
         self.assertIsNone(readVersion("/nonexistent/version.txt"))
+
+    def test_the_installation_id_is_kept_under_the_user_data_dir_and_reused(self):
+        xdg = os.path.join(self.tempDir.name, "xdg")
+        with mock.patch.object(usage_reporting.sys, "platform", "linux"), \
+                mock.patch.dict(os.environ, {"XDG_DATA_HOME": xdg}):
+            first = buildClient({"enabled": True, "key": "k"})
+            second = buildClient({"enabled": True, "key": "k"})
+        first.close()
+        second.close()
+        with open(os.path.join(xdg, "kreatures", "trace-install-id"), "r") as f:
+            self.assertEqual(first.install_id, f.readline().strip())
+        self.assertTrue(first.install_id)
+        self.assertEqual(first.install_id, second.install_id)
+
+    def test_trace_install_id_wins_over_the_file(self):
+        with mock.patch.dict(os.environ, {"TRACE_INSTALL_ID": "pinned-id"}):
+            client = buildClient({"enabled": True, "key": "k"})
+        client.close()
+        self.assertEqual("pinned-id", client.install_id)
+        self.assertFalse(os.path.exists(installIdFile()))
+
+    def test_the_installation_id_file_follows_the_platform(self):
+        with mock.patch.dict(os.environ, {"HOME": "/h", "APPDATA": "/appdata"}):
+            os.environ.pop("XDG_DATA_HOME", None)
+            for platform, expected in (
+                ("linux", os.path.join("/h", ".local", "share", "kreatures", "trace-install-id")),
+                ("darwin", os.path.join("/h", "Library", "Application Support", "kreatures",
+                                        "trace-install-id")),
+                ("win32", os.path.join("/appdata", "kreatures", "trace-install-id")),
+                ("emscripten", None),
+            ):
+                with mock.patch.object(usage_reporting.sys, "platform", platform):
+                    self.assertEqual(expected, installIdFile(), platform)
 
     def test_a_missing_version_file_still_builds_a_client(self):
         with mock.patch.object(usage_reporting, "readVersion", return_value=None):
@@ -277,10 +315,12 @@ class TestStartup(UsageReportingTestCase):
             {
                 "application": "Kreatures",
                 "name": "startup",
-                "tags": {"version": readVersion()},
+                "tags": {"version": readVersion(), "install": client.install_id},
             },
             request["body"],
         )
+        with open(installIdFile(), "r") as f:
+            self.assertEqual(client.install_id, f.readline().strip())
         self.assertEqual([], self.logged)
 
     def test_opted_out_sends_nothing(self):
@@ -299,6 +339,7 @@ class TestStartup(UsageReportingTestCase):
         self.assertFalse(client.enabled)
         self.assertFalse(self.arrived.wait(0.5))
         self.assertEqual([], self.requests)
+        self.assertFalse(os.path.exists(installIdFile()))
 
     def test_do_not_track_sends_nothing_even_when_the_settings_say_on(self):
         self.writeSettingsFile(
@@ -319,6 +360,7 @@ class TestStartup(UsageReportingTestCase):
         self.assertFalse(self.arrived.wait(0.5))
         self.assertEqual([], self.requests)
         self.assertEqual([], self.logged)
+        self.assertFalse(os.path.exists(installIdFile()))
 
     def test_trace_usage_reporting_off_sends_nothing_on_a_first_run(self):
         original = usage_reporting.DEFAULT_ENDPOINT
