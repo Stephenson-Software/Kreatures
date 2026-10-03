@@ -8,6 +8,11 @@ next to ``names.json``, the one configuration file the project already reads.
 The file is created on the first launch after this was added, together with a
 single printed notice saying that reporting is on and how to turn it off.
 
+Every event also carries a random installation ID (the tag ``install``) so
+installations can be counted rather than launches: ``TRACE_INSTALL_ID`` when
+set, otherwise a UUID the client keeps in ``installIdFile()``. The browser
+build gets no ID file (see ``installIdFile``).
+
 Two environment variables every trace client honours also turn it off:
 ``TRACE_USAGE_REPORTING=off`` and ``DO_NOT_TRACK=1``. The client checks them
 in its constructor, before the settings block, so they win even when the
@@ -18,6 +23,7 @@ Details: https://github.com/Stephenson-Software/trace#usage-reporting
 import atexit
 import json
 import os
+import sys
 
 from trace_client import TraceClient, environment_opts_out
 
@@ -36,8 +42,8 @@ VERSION_FILE = os.path.join(_SRC_DIR, "..", "version.txt")
 DETAILS_URL = "https://github.com/Stephenson-Software/trace#usage-reporting"
 
 FIRST_RUN_NOTICE = (
-    "Usage reporting is on: Kreatures sends a startup event (program name and "
-    "version only) to trace.danielstephenson.dev. "
+    "Usage reporting is on: Kreatures sends a startup event (program name, "
+    "version and a random installation ID only) to trace.danielstephenson.dev. "
     'Turn it off with "usage_reporting": {"enabled": false} in src/config/settings.json '
     "or TRACE_USAGE_REPORTING=off in the environment. Details: " + DETAILS_URL
 )
@@ -56,6 +62,32 @@ def readVersion(versionFile=VERSION_FILE):
         return version or None
     except OSError:
         return None
+
+
+def installIdFile():
+    """Where this installation's random ID (the tag ``install``) is kept:
+    ``<user data dir>/kreatures/trace-install-id``, the user data dir being
+    %APPDATA% on Windows, ~/Library/Application Support on macOS and
+    $XDG_DATA_HOME (or ~/.local/share) elsewhere. The client only reads or
+    creates it when reporting is on; deleting it resets the ID.
+
+    None in the browser build (tak's console runtime): the browser has no
+    stable user data directory, and Kreatures keeps nothing in localStorage
+    to hold an ID instead, so no ID is made there."""
+    if sys.platform == "emscripten":
+        return None
+    home = os.path.expanduser("~")
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", "").strip() or os.path.join(
+            home, "AppData", "Roaming"
+        )
+    elif sys.platform == "darwin":
+        base = os.path.join(home, "Library", "Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME", "").strip() or os.path.join(
+            home, ".local", "share"
+        )
+    return os.path.join(base, APPLICATION.lower(), "trace-install-id")
 
 
 def programVersion():
@@ -115,7 +147,9 @@ def buildClient(section):
     """A TraceClient for the given usage_reporting settings; disabled when
     they are None or opted out. Always built through the client's constructor,
     which puts TRACE_USAGE_REPORTING / DO_NOT_TRACK ahead of the settings and
-    records why it is off in ``disabled_reason``."""
+    records why it is off in ``disabled_reason``. The installation ID
+    (TRACE_INSTALL_ID, else installIdFile()) is resolved by the client only
+    after those checks, so a disabled client never creates the file."""
     if section is None:
         return TraceClient.disabled()
     enabled = section.get("enabled", True)
@@ -123,7 +157,13 @@ def buildClient(section):
     key = section.get("key") or DEFAULT_KEY
     try:
         return TraceClient(
-            endpoint, APPLICATION, programVersion(), key=key, enabled=bool(enabled)
+            endpoint,
+            APPLICATION,
+            programVersion(),
+            key=key,
+            enabled=bool(enabled),
+            install_id=os.environ.get("TRACE_INSTALL_ID"),
+            install_id_file=installIdFile(),
         )
     except Exception:
         return TraceClient.disabled()
