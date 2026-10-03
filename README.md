@@ -1,4 +1,7 @@
 # Kreatures
+
+[![Play in your browser](https://img.shields.io/badge/Play-in%20your%20browser-2ea44f)](https://danielstephenson.dev/play/kreatures)
+
 This game allows you to place a creature into a virtual environment with other creatures and observe its activity.
 
 ## Background
