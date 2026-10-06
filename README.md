@@ -42,7 +42,7 @@ To turn reporting off, any one of these will do:
 }
 ```
 
-The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.4.0).
+The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.4.1).
 
 Details: https://danielstephenson.dev/usage-reporting
 
