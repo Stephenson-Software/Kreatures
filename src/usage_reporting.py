@@ -18,7 +18,7 @@ Two environment variables every trace client honours also turn it off:
 in its constructor, before the settings block, so they win even when the
 block says on - and a first launch with either set writes nothing and says
 nothing, so the notice is still waiting for the first launch that reports.
-Details: https://github.com/Stephenson-Software/trace#usage-reporting
+Details: https://danielstephenson.dev/usage-reporting
 """
 import atexit
 import json
@@ -39,7 +39,7 @@ _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(_SRC_DIR, "config", "settings.json")
 VERSION_FILE = os.path.join(_SRC_DIR, "..", "version.txt")
 
-DETAILS_URL = "https://github.com/Stephenson-Software/trace#usage-reporting"
+DETAILS_URL = "https://danielstephenson.dev/usage-reporting"
 
 FIRST_RUN_NOTICE = (
     "Usage reporting is on: Kreatures sends a startup event (program name, "

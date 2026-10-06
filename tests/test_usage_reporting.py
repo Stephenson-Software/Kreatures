@@ -113,7 +113,7 @@ class TestSettings(UsageReportingTestCase):
         self.assertIn("src/config/settings.json", FIRST_RUN_NOTICE)
         self.assertIn("TRACE_USAGE_REPORTING=off", FIRST_RUN_NOTICE)
         self.assertIn(
-            "https://github.com/Stephenson-Software/trace#usage-reporting",
+            "https://danielstephenson.dev/usage-reporting",
             FIRST_RUN_NOTICE,
         )
         self.assertNotIn("\n", FIRST_RUN_NOTICE)
