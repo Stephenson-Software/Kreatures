@@ -228,6 +228,15 @@ class TestBuildClient(UsageReportingTestCase):
         self.assertEqual(DEFAULT_ENDPOINT + "/api/metrics", client._endpoint)
         self.assertEqual(DEFAULT_KEY, client._key)
 
+    def test_a_failure_building_the_client_gives_a_disabled_client(self):
+        with mock.patch.object(
+            usage_reporting, "installIdFile", side_effect=OSError("no data dir")
+        ):
+            client = buildClient({"enabled": True, "key": "k"})
+
+        self.assertFalse(client.enabled)
+        self.assertEqual("http://disabled.invalid/api/metrics", client._endpoint)
+
     def test_an_empty_key_with_no_default_would_disable_but_the_default_is_set(self):
         self.assertTrue(DEFAULT_KEY)
         self.assertEqual("Kreatures", APPLICATION)
