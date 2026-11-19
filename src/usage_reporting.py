@@ -18,6 +18,12 @@ Two environment variables every trace client honours also turn it off:
 in its constructor, before the settings block, so they win even when the
 block says on - and a first launch with either set writes nothing and says
 nothing, so the notice is still waiting for the first launch that reports.
+Every switch fails closed, so an opt-out is never read as on: the block's
+``enabled`` is read through the client's ``allows_reporting``, so only
+``true`` (or the strings "true", "on", "yes", "1") keeps reporting on, and
+``false``, ``"false"``, ``"off"``, ``0``, ``null`` or a missing ``enabled``
+turn it off. A ``usage_reporting`` entry that is not an object (``false``,
+``"off"``) is read the same way and never replaced by the defaults.
 Details: https://danielstephenson.dev/usage-reporting
 """
 import atexit
@@ -25,7 +31,7 @@ import json
 import os
 import sys
 
-from trace_client import TraceClient, environment_opts_out
+from trace_client import TraceClient, allows_reporting, environment_opts_out
 
 # @author Daniel McCoy Stephenson
 # @since September 11th, 2026
@@ -119,9 +125,14 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
             )
             return None
 
-    section = settings.get(SETTINGS_SECTION)
-    if isinstance(section, dict):
-        return section
+    if SETTINGS_SECTION in settings:
+        section = settings[SETTINGS_SECTION]
+        if isinstance(section, dict):
+            return section
+        # e.g. "usage_reporting": false or "off": the operator's switch, written
+        # without the block around it. Read it as the switch (fails closed) and
+        # never overwrite it with the defaults, which would turn reporting on.
+        return {"enabled": allows_reporting(section)}
 
     if environment_opts_out():
         # Nothing will be sent this run, so saying "reporting is on" would be
@@ -152,7 +163,9 @@ def buildClient(section):
     after those checks, so a disabled client never creates the file."""
     if section is None:
         return TraceClient.disabled()
-    enabled = section.get("enabled", True)
+    # Fails closed: "false", "off", 0, null or a missing "enabled" is off;
+    # bool("false") would have been True.
+    enabled = allows_reporting(section.get("enabled"))
     endpoint = section.get("endpoint") or DEFAULT_ENDPOINT
     key = section.get("key") or DEFAULT_KEY
     try:
@@ -161,7 +174,7 @@ def buildClient(section):
             APPLICATION,
             programVersion(),
             key=key,
-            enabled=bool(enabled),
+            enabled=enabled,
             install_id=os.environ.get("TRACE_INSTALL_ID"),
             install_id_file=installIdFile(),
         )
