@@ -173,6 +173,28 @@ class TestSettings(UsageReportingTestCase):
         with open(self.settingsFile, "r") as f:
             self.assertEqual("{not json", f.read())
 
+    def test_a_non_object_block_is_read_as_the_switch_and_never_overwritten(self):
+        for block, expected in (
+            (False, False),
+            ("off", False),
+            ("false", False),
+            (0, False),
+            (None, False),
+            ([], False),
+            (True, True),
+            ("on", True),
+        ):
+            with self.subTest(block=block):
+                self.writeSettingsFile({"usage_reporting": block, "other": 1})
+
+                section = loadSettings(self.settingsFile, self.log)
+
+                self.assertEqual({"enabled": expected}, section)
+                self.assertEqual([], self.logged)
+                self.assertEqual(
+                    {"usage_reporting": block, "other": 1}, self.readSettingsFile()
+                )
+
     def test_a_non_object_file_disables_reporting(self):
         self.writeSettingsFile([1, 2, 3])
 
@@ -198,6 +220,41 @@ class TestBuildClient(UsageReportingTestCase):
 
         self.assertFalse(client.enabled)
         self.assertEqual("config", client.disabled_reason)
+
+    def test_enabled_fails_closed(self):
+        for enabled in (False, "false", "False", "off", "no", "0", 0, None, "", "disabled", [], {}):
+            with self.subTest(enabled=enabled):
+                client = buildClient({"enabled": enabled, "key": "k"})
+
+                self.assertFalse(client.enabled)
+                self.assertEqual("config", client.disabled_reason)
+
+    def test_a_block_without_enabled_is_off(self):
+        client = buildClient({"key": "k"})
+
+        self.assertFalse(client.enabled)
+        self.assertEqual("config", client.disabled_reason)
+
+    def test_clear_on_values_keep_reporting_on(self):
+        for enabled in (True, "true", "TRUE", "on", "yes", "1"):
+            with self.subTest(enabled=enabled):
+                client = buildClient({"enabled": enabled, "key": "k"})
+                self.addCleanup(client.close)
+
+                self.assertTrue(client.enabled)
+
+    def test_the_environment_fails_closed_on_unclear_values(self):
+        for variable, value in (
+            ("TRACE_USAGE_REPORTING", "disabled"),
+            ("TRACE_USAGE_REPORTING", "nope"),
+            ("DO_NOT_TRACK", "anything"),
+        ):
+            with self.subTest(variable=variable, value=value):
+                with mock.patch.dict(os.environ, {variable: value}):
+                    client = buildClient({"enabled": True, "key": "k"})
+
+                self.assertFalse(client.enabled)
+                self.assertEqual("environment", client.disabled_reason)
 
     def test_the_environment_wins_over_settings_saying_on(self):
         for variable, value in (

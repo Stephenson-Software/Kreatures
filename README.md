@@ -34,6 +34,8 @@ To turn reporting off, any one of these will do:
 - `TRACE_USAGE_REPORTING=off` (also `false`, `0`, `no`) in the environment — turns off every program that reports to trace
 - `DO_NOT_TRACK=1` (also `true`, `yes`) in the environment — the [console DNT convention](https://consoledonottrack.com), honoured the same way
 
+Every switch fails closed, so an opt-out is never read as "on": `enabled` keeps reporting on only for `true` (or the strings `"true"`, `"on"`, `"yes"`, `"1"`), and `false`, `"false"`, `"off"`, `0`, `null`, a typo or a missing `enabled` turn it off; `"usage_reporting": false` works too and is never replaced by the defaults. `TRACE_USAGE_REPORTING` set to anything but blank, `true`, `on`, `yes` or `1` turns it off, and so does `DO_NOT_TRACK` set to anything but blank, `0`, `false`, `off` or `no`.
+
 ```json
 {
   "usage_reporting": {
@@ -42,7 +44,7 @@ To turn reporting off, any one of these will do:
 }
 ```
 
-The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.4.1).
+The same block also holds `endpoint` and `key`, which are only there to be pointed at another trace server. The reporting client is `src/trace_client.py`, vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python) (0.5.0).
 
 Details: https://danielstephenson.dev/usage-reporting
 
