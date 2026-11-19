@@ -21,6 +21,7 @@ from usage_reporting import (  # noqa: E402
     DEFAULT_ENDPOINT,
     DEFAULT_KEY,
     FIRST_RUN_NOTICE,
+    FIRST_RUN_NOTICE_OFF_BY_SETTINGS,
     SETTINGS_FILE,
     buildClient,
     installIdFile,
@@ -194,6 +195,56 @@ class TestSettings(UsageReportingTestCase):
                 self.assertEqual(
                     {"usage_reporting": block, "other": 1}, self.readSettingsFile()
                 )
+
+    def test_an_opt_out_written_under_a_near_miss_name_is_an_opt_out(self):
+        # these used to be ignored, so the default block (on) was written next to them
+        for settings in (
+            {"usage-reporting": {"enabled": False}},
+            {"usageReporting": {"enabled": "off"}},
+            {"UsageReporting": {"enabled": "false"}},
+            {"usage-reporting": "off"},
+            {"usage_reporting": {"enabled": True, "enable": False}},
+            {"usage_reporting": {"enabled": True, "Enabled": "no"}},
+            {"usage_reporting": {"enabled": True, "disabled": True}},
+            {"usage_reporting": True, "usageReporting": False},
+        ):
+            with self.subTest(settings=settings):
+                self.logged.clear()
+                self.writeSettingsFile(settings)
+
+                client = buildClient(loadSettings(self.settingsFile, self.log))
+
+                self.assertFalse(client.enabled)
+                self.assertNotIn(FIRST_RUN_NOTICE, self.logged)
+
+    def test_near_miss_names_that_say_on_are_not_an_opt_out(self):
+        for settings in (
+            {"usage-reporting": {"enabled": True}},
+            {"usageReporting": "on"},
+            {"usage_reporting": {"enabled": True, "enable": "yes"}},
+            {"usage_reporting": {"enabled": True, "disabled": False}},
+            {"usage_reporting": {"enabled": True, "disabled": "no"}},
+        ):
+            with self.subTest(settings=settings):
+                self.writeSettingsFile(settings)
+
+                client = buildClient(loadSettings(self.settingsFile, self.log))
+                try:
+                    self.assertTrue(client.enabled)
+                finally:
+                    client.close()
+
+    def test_a_first_run_over_a_near_miss_opt_out_writes_the_real_switch_off(self):
+        self.writeSettingsFile({"usage-reporting": {"enabled": False}})
+
+        loadSettings(self.settingsFile, self.log)
+        client = buildClient(loadSettings(self.settingsFile, self.log))
+
+        self.assertFalse(client.enabled)
+        written = self.readSettingsFile()
+        self.assertIs(False, written["usage_reporting"]["enabled"])
+        self.assertEqual({"enabled": False}, written["usage-reporting"])
+        self.assertEqual([FIRST_RUN_NOTICE_OFF_BY_SETTINGS], self.logged)
 
     def test_a_non_object_file_disables_reporting(self):
         self.writeSettingsFile([1, 2, 3])
